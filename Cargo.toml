@@ -1,0 +1,14 @@
+[workspace]
+members = [
+    "blog-cli",
+    "blog-client",
+    "blog-server",
+    "blog-wasm"
+]
+
+# Общие настройки для всех членов workspace
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+authors = ["Eugen Batts"]
+license = "MIT"
