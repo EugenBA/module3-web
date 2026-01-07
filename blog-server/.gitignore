@@ -1,1 +1,4 @@
-/target
+target
+*.lock
+.env
+.block_token
