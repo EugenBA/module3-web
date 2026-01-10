@@ -1,5 +1,4 @@
 pub(crate) mod database;
-mod jwt;
+pub(crate) mod jwt;
 mod logging;
 pub(crate) mod config;
-mod security;
