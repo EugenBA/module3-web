@@ -1,2 +1,2 @@
-mod auth_service;
+pub(crate) mod auth_service;
 mod blog_service;

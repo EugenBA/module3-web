@@ -9,14 +9,14 @@ struct User {
     created_at: i64
 }
 #[derive(Debug, Serialize, Deserialize)]
-struct RegisterUser {
+pub(crate) struct RegisterUser {
     username: String,
-    email: String,
-    password: String
+    pub(crate) email: String,
+    pub(crate) password: String
 }
 #[derive(Debug, Serialize, Deserialize)]
-struct LoginUser {
-    username: String,
-    password: String
+pub(crate) struct LoginUser {
+    pub(crate) username: String,
+    pub(crate) password: String,
 }
 

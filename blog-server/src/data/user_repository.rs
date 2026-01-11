@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 #[derive(Debug)]
 pub struct UserRow {
     pub id: Uuid,
-    pub email: String,
+    pub username: String,
     pub password_hash: String,
     pub created_at: DateTime<Utc>,
 }
@@ -30,21 +30,21 @@ pub async fn create_user(
     Ok(())
 }
 
-pub async fn find_by_email(pool: &PgPool, email: &str) -> Result<Option<UserRow>, sqlx::Error> {
+pub async fn find_user(pool: &PgPool, username: &str) -> Result<Option<UserRow>, sqlx::Error> {
     let row = sqlx::query(
         r#"
-        SELECT id, email, password_hash, created_at
+        SELECT id, username, password_hash, created_at
         FROM users
-        WHERE email = $1
+        WHERE username = $1
         "#,
     )
-        .bind(email)
+        .bind(username)
         .fetch_optional(pool)
         .await?;
 
     Ok(row.map(|r| UserRow {
         id: r.get("id"),
-        email: r.get("email"),
+        username: r.get("username"),
         password_hash: r.get("password_hash"),
         created_at: r.get("created_at"),
     }))

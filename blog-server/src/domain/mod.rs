@@ -1,3 +1,3 @@
-mod post;
-mod user;
+pub(crate) mod post;
+pub(crate) mod user;
 mod error;

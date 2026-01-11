@@ -1,13 +1,12 @@
 use actix_web::{get, post, web, HttpResponse, Responder};
-use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use argon2::{
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
-use crate::data::{user_repository, post_repository};
 use crate::infrastructure::{jwt, config::Config};
-
+use crate::domain::user::{RegisterUser, LoginUser};
+use crate::data::user_repository;
 
 #[get("/health")]
 async fn health() -> impl Responder {
@@ -17,7 +16,7 @@ async fn health() -> impl Responder {
 #[post("/register")]
 async fn register(
     pool: web::Data<PgPool>,
-    body: web::Json<RegisterDto>,
+    body: web::Json<RegisterUser>,
 ) -> actix_web::Result<impl Responder> {
     let email = body.email.trim().to_lowercase();
     if email.is_empty() || body.password.len() < 6 {
@@ -31,7 +30,7 @@ async fn register(
 
     let user_id = uuid::Uuid::new_v4();
 
-    let res = users_repo::create_user(&pool, user_id, &email, &pw_hash).await;
+    let res = user_repository::create_user(&pool, user_id, &email, &pw_hash).await;
     match res {
         Ok(_) => Ok(HttpResponse::Created().finish()),
         Err(sqlx::Error::Database(db_err)) if db_err.is_unique_violation() => {
@@ -45,11 +44,11 @@ async fn register(
 async fn login(
     pool: web::Data<PgPool>,
     cfg: web::Data<Config>,
-    body: web::Json<LoginDto>,
+    body: web::Json<LoginUser>,
 ) -> actix_web::Result<impl Responder> {
-    let email = body.email.trim().to_lowercase();
+    let username = body.username.trim().to_lowercase();
 
-    let user = match users_repo::find_by_email(&pool, &email).await {
+    let user = match user_repository::find_user(&pool, &username).await {
         Ok(Some(u)) => u,
         Ok(None) => return Ok(HttpResponse::Unauthorized().finish()),
         Err(_) => return Err(actix_web::error::ErrorInternalServerError("db error")),
@@ -68,7 +67,7 @@ async fn login(
     Ok(HttpResponse::Ok().json(TokenResponse { access_token: token }))
 }
 
-pub fn configure(cfg: &mut actix_web::web::ServiceConfig) {
+pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(health)
         .service(register)
         .service(login);
