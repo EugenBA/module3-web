@@ -1,7 +1,6 @@
 mod application;
 mod data;
 mod domain;
-mod handlers;
 mod infrastructure;
 mod presentation;
 mod server;
