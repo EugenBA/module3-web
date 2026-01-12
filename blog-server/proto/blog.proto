@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package exchange;
+
+message Order {
+  int64 id = 1;
+  string symbol = 2;
+  double price = 3;
+  int64 quantity = 4;
+  OrderType type = 5;
+}
+
+enum OrderType {
+  BUY = 0;
+  SELL = 1;
+}

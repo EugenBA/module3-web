@@ -1,10 +1,9 @@
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum BlogError
-{
-    #[error("User not found")]
-    UserNotFound,
+pub enum DomainError {
+    #[error("User not found {0}")]
+    UserNotFound(String),
     #[error("User already exists")]
     UserAlreadyExists,
     #[error("Invalid credentials")]
@@ -12,5 +11,9 @@ pub enum BlogError
     #[error("Post not found")]
     PostNotFound,
     #[error("Forbidden action")]
-    Forbidden
+    Forbidden,
+    #[error("Unauthorized user")]
+    Unauthorized,
+    #[error("Internal error {0}")]
+    Internal(String)
 }

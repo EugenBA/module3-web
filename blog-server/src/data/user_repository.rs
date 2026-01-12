@@ -1,51 +1,87 @@
 use sqlx::{PgPool, Row};
-use uuid::Uuid;
-use chrono::{DateTime, Utc};
+use tonic::async_trait;
+use crate::domain::{user::User, error::DomainError};
+
+#[async_trait]
+pub trait UserRepository: Send + Sync {
+    async fn create(&self, user: User) -> Result<User, DomainError>;
+    async fn find_by_name(&self, name: &str) -> Result<Option<User>, DomainError>;
+    async fn find_by_id(&self, id: i64) -> Result<Option<User>, DomainError>;
+}
 
 #[derive(Debug)]
-pub struct UserRow {
-    pub id: Uuid,
-    pub username: String,
-    pub password_hash: String,
-    pub created_at: DateTime<Utc>,
+pub(crate)struct InDbUserRepository {
+    pool: PgPool,
 }
 
-pub async fn create_user(
-    pool: &PgPool,
-    id: Uuid,
-    email: &str,
-    password_hash: &str,
-) -> Result<(), sqlx::Error> {
-    sqlx::query(
-        r#"
-        INSERT INTO users (id, email, password_hash)
+
+#[async_trait]
+impl <'a> UserRepository for InDbUserRepository<'a>{
+    async fn create(
+        &self,
+        user: User,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            r#"
+        INSERT INTO users (username, email, password_hash)
         VALUES ($1, $2, $3)
         "#,
-    )
-        .bind(id)
-        .bind(email)
-        .bind(password_hash)
-        .execute(pool)
-        .await?;
-    Ok(())
-}
+        )
+            .bind(user.username)
+            .bind(user.email)
+            .bind(user.password_hash)
+            .execute(self.pool)
+            .await?;
+        Ok(())
+    }
 
-pub async fn find_user(pool: &PgPool, username: &str) -> Result<Option<UserRow>, sqlx::Error> {
-    let row = sqlx::query(
-        r#"
-        SELECT id, username, password_hash, created_at
+    async fn find_by_name(&self, username: &str) -> Result<Option<User>, sqlx::Error> {
+        let row= sqlx::query(
+            r#"
+        SELECT id, username, email, password_hash, created_at
         FROM users
         WHERE username = $1
         "#,
-    )
-        .bind(username)
-        .fetch_optional(pool)
-        .await?;
+        )
+            .bind(username)
+            .fetch_optional(self.pool)
+            .await?;
 
-    Ok(row.map(|r| UserRow {
-        id: r.get("id"),
-        username: r.get("username"),
-        password_hash: r.get("password_hash"),
-        created_at: r.get("created_at"),
-    }))
+        Ok(row.map(|r| User {
+            id: r.get("id"),
+            username: r.get("username"),
+            email: r.get("email"),
+            password_hash: r.get("password_hash"),
+            created_at: r.get("created_at"),
+        }))
+    }
+
+    async fn find_by_id(&self, id: i64) -> Result<Option<User>, sqlx::Error> {
+        let row = sqlx::query(
+            r#"
+        SELECT id, username, email, password_hash, created_at
+        FROM users
+        WHERE id = $1
+        "#,
+        )
+            .bind(id)
+            .fetch_optional(self.pool)
+            .await?;
+
+        Ok(row.map(|r| User {
+            id: r.get("id"),
+            username: r.get("username"),
+            email: r.get("email"),
+            password_hash: r.get("password_hash"),
+            created_at: r.get("created_at"),
+        }))
+    }
 }
+impl<'a> InDbUserRepository<'a> {
+    pub(crate)fn new(pool: &'a PgPool) -> Self {
+        Self { pool }
+    }
+}
+
+
+

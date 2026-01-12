@@ -1,10 +1,10 @@
-mod server;
-mod handlers;
-mod domain;
 mod application;
 mod data;
+mod domain;
+mod handlers;
 mod infrastructure;
 mod presentation;
+mod server;
 
 use infrastructure::{config::Config, database};
 use sqlx::postgres::PgPoolOptions;

@@ -1,0 +1,47 @@
+use actix_web::dev::Payload;
+use actix_web::{error::ErrorUnauthorized, Error, FromRequest, HttpMessage, HttpRequest};
+use futures_util::future::{ready, Ready};
+use uuid::Uuid;
+
+use crate::application::auth_service::AuthService;
+use crate::data::user_repository::InDbUserRepository;
+use crate::infrastructure::jwt::JwtService;
+
+#[derive(Debug, Clone)]
+pub(crate) struct AuthenticatedUser {
+    pub(crate) id: i64,
+    #[allow(dead_code)]
+    pub(crate) email: String,
+}
+
+impl FromRequest for AuthenticatedUser {
+    type Error = Error;
+    type Future = Ready<Result<Self, Self::Error>>;
+
+    fn from_request(req: &HttpRequest, _: &mut Payload) -> Self::Future {
+        if let Some(user) = req.extensions().get::<AuthenticatedUser>() {
+            return ready(Ok(user.clone()));
+        }
+        ready(Err(ErrorUnauthorized("missing authenticated user")))
+    }
+}
+
+pub async fn extract_user_from_token<'a>(
+    token: &str,
+    keys: &JwtService,
+    auth_service: &AuthService<InDbUserRepository<'a>>,
+) -> Result<AuthenticatedUser, Error> {
+    let claims = keys
+        .verify_token(token)
+        .map_err(|_| ErrorUnauthorized("invalid token"))?;
+    let user_id = claims.user_id;
+    let user = auth_service
+        .get_user(user_id)
+        .await
+        .map_err(|_| ErrorUnauthorized("user not found"))?;
+
+    Ok(AuthenticatedUser {
+        id: user.id,
+        email: user.email,
+    })
+}

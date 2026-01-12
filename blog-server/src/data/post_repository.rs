@@ -1,7 +1,6 @@
+use chrono::{DateTime, Utc};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
-
 
 #[derive(Debug)]
 struct PostRow {
@@ -17,7 +16,7 @@ async fn add_post(
     pool: &PgPool,
     title: &str,
     content: &str,
-    author_id: i64
+    author_id: i64,
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
@@ -25,11 +24,11 @@ async fn add_post(
         VALUES ($1, $2, $3)
         "#,
     )
-        .bind(title)
-        .bind(content)
-        .bind(author_id)
-        .execute(pool)
-        .await?;
+    .bind(title)
+    .bind(content)
+    .bind(author_id)
+    .execute(pool)
+    .await?;
     Ok(())
 }
 
@@ -41,9 +40,9 @@ async fn get_post(pool: &PgPool, id: i64) -> Result<Option<PostRow>, sqlx::Error
         WHERE id = $1
         "#,
     )
-        .bind(id)
-        .fetch_optional(pool)
-        .await?;
+    .bind(id)
+    .fetch_optional(pool)
+    .await?;
 
     Ok(row.map(|r| PostRow {
         id: r.get("id"),
@@ -51,11 +50,16 @@ async fn get_post(pool: &PgPool, id: i64) -> Result<Option<PostRow>, sqlx::Error
         content: r.get("content"),
         author_id: r.get("author_id"),
         created_at: r.get("created_at"),
-        updated_at: r.get("updated_at")
+        updated_at: r.get("updated_at"),
     }))
 }
 
-async fn update_post(pool: &PgPool, id: i64, title: &str, content: &str) -> Result<(), sqlx::Error> {
+async fn update_post(
+    pool: &PgPool,
+    id: i64,
+    title: &str,
+    content: &str,
+) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
         UPDATE post
@@ -63,11 +67,11 @@ async fn update_post(pool: &PgPool, id: i64, title: &str, content: &str) -> Resu
         WHERE id = $1
         "#,
     )
-        .bind(id)
-        .bind(title)
-        .bind(content)
-        .execute(pool)
-        .await?;
+    .bind(id)
+    .bind(title)
+    .bind(content)
+    .execute(pool)
+    .await?;
     Ok(())
 }
 
@@ -78,8 +82,8 @@ async fn delete_post(pool: &PgPool, id: i64) -> Result<(), sqlx::Error> {
         WHERE id = $1
         "#,
     )
-        .bind(id)
-        .execute(pool)
-        .await?;
+    .bind(id)
+    .execute(pool)
+    .await?;
     Ok(())
 }

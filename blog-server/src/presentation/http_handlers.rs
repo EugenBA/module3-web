@@ -1,12 +1,9 @@
-use actix_web::{get, post, web, HttpResponse, Responder};
-use sqlx::PgPool;
-use argon2::{
-    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
-    Argon2,
-};
-use crate::infrastructure::{jwt, config::Config};
-use crate::domain::user::{RegisterUser, LoginUser};
 use crate::data::user_repository;
+use crate::domain::user::{LoginUser, RegisterUser};
+use crate::infrastructure::{config::Config, jwt, hash};
+use actix_web::{HttpResponse, Responder, get, post, web};
+use sqlx::PgPool;
+use crate::infrastructure::jwt::JwtService;
 
 #[get("/health")]
 async fn health() -> impl Responder {
@@ -25,7 +22,7 @@ async fn register(
         })));
     }
 
-    let pw_hash = security::hash_password(&body.password)
+    let pw_hash = hash::hash_password(&body.password)
         .map_err(|_| actix_web::error::ErrorInternalServerError("hash error"))?;
 
     let user_id = uuid::Uuid::new_v4();
@@ -54,21 +51,21 @@ async fn login(
         Err(_) => return Err(actix_web::error::ErrorInternalServerError("db error")),
     };
 
-    let ok = security::verify_password(&body.password, &user.password_hash)
+    let ok = hash::verify_password(&body.password, &user.password_hash)
         .map_err(|_| actix_web::error::ErrorInternalServerError("verify error"))?;
 
     if !ok {
         return Ok(HttpResponse::Unauthorized().finish());
     }
 
-    let token = security::generate_jwt(&cfg.jwt_secret, user.id)
+    let token = JwtService::generate_jwt(&cfg.jwt_secret, user.id)
         .map_err(|_| actix_web::error::ErrorInternalServerError("jwt error"))?;
 
-    Ok(HttpResponse::Ok().json(TokenResponse { access_token: token }))
+    Ok(HttpResponse::Ok().json(TokenResponse {
+        access_token: token,
+    }))
 }
 
 pub fn configure(cfg: &mut web::ServiceConfig) {
-    cfg.service(health)
-        .service(register)
-        .service(login);
+    cfg.service(health).service(register).service(login);
 }
