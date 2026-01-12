@@ -1,0 +1,45 @@
+use serde::Deserialize;
+
+#[derive(Clone, Debug, Deserialize)]
+pub(crate) struct Config {
+    pub(crate) database_url: String,
+    host: String,
+    port: u16,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub(crate) struct JwtConfig {
+    secret: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub(crate) struct CorsConfig {
+    origin: String,
+}
+
+impl Config {
+    pub fn from_env() -> anyhow::Result<Self> {
+        let database_url = std::env::var("DATABASE_URL")?;
+        let host = std::env::var("HOST").unwrap_or_else(|_| "127.0.0.1".into());
+        let port = std::env::var("PORT").unwrap_or_else(|_| "8080".into()).parse()?;
+        Ok(Self {
+            database_url,
+            host,
+            port,
+        })
+    }
+}
+
+impl JwtConfig {
+    pub fn from_env() -> anyhow::Result<Self> {
+        let secret = std::env::var("JWT_SECRET")?;
+        Ok(Self { secret })
+    }
+}
+
+impl CorsConfig {
+    pub fn from_env() -> anyhow::Result<Self> {
+        let origin = std::env::var("CORS_ORIGIN")?;
+        Ok(Self { origin })
+    }
+}
