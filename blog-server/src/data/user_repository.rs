@@ -1,6 +1,9 @@
+use std::ops::Deref;
+use std::sync::Arc;
 use sqlx::{PgPool, Row};
 use tonic::async_trait;
 use crate::domain::{user::User, error::DomainError};
+
 
 #[async_trait]
 pub trait UserRepository: Send + Sync {
@@ -11,16 +14,20 @@ pub trait UserRepository: Send + Sync {
 
 #[derive(Debug)]
 pub(crate)struct InDbUserRepository {
-    pool: PgPool,
+    pool: Arc<PgPool>,
 }
 
 
 #[async_trait]
-impl <'a> UserRepository for InDbUserRepository<'a>{
+impl UserRepository for InDbUserRepository{
     async fn create(
         &self,
         user: User,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<User, DomainError> {
+        let result_user = user.clone();
+        if let Some(_) = self.find_by_name(user.username.as_str()).await?{
+            return Err(DomainError::UserAlreadyExists(result_user.username));
+        }
         sqlx::query(
             r#"
         INSERT INTO users (username, email, password_hash)
@@ -30,12 +37,12 @@ impl <'a> UserRepository for InDbUserRepository<'a>{
             .bind(user.username)
             .bind(user.email)
             .bind(user.password_hash)
-            .execute(self.pool)
+            .execute(self.pool.deref())
             .await?;
-        Ok(())
+        Ok(result_user)
     }
 
-    async fn find_by_name(&self, username: &str) -> Result<Option<User>, sqlx::Error> {
+    async fn find_by_name(&self, username: &str) -> Result<Option<User>, DomainError> {
         let row= sqlx::query(
             r#"
         SELECT id, username, email, password_hash, created_at
@@ -44,7 +51,7 @@ impl <'a> UserRepository for InDbUserRepository<'a>{
         "#,
         )
             .bind(username)
-            .fetch_optional(self.pool)
+            .fetch_optional(self.pool.deref())
             .await?;
 
         Ok(row.map(|r| User {
@@ -56,7 +63,7 @@ impl <'a> UserRepository for InDbUserRepository<'a>{
         }))
     }
 
-    async fn find_by_id(&self, id: i64) -> Result<Option<User>, sqlx::Error> {
+    async fn find_by_id(&self, id: i64) -> Result<Option<User>, DomainError> {
         let row = sqlx::query(
             r#"
         SELECT id, username, email, password_hash, created_at
@@ -65,7 +72,7 @@ impl <'a> UserRepository for InDbUserRepository<'a>{
         "#,
         )
             .bind(id)
-            .fetch_optional(self.pool)
+            .fetch_optional(self.pool.deref())
             .await?;
 
         Ok(row.map(|r| User {
@@ -77,8 +84,8 @@ impl <'a> UserRepository for InDbUserRepository<'a>{
         }))
     }
 }
-impl<'a> InDbUserRepository<'a> {
-    pub(crate)fn new(pool: &'a PgPool) -> Self {
+impl InDbUserRepository {
+    pub(crate)fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
 }

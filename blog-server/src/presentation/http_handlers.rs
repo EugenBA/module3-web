@@ -1,6 +1,6 @@
 use crate::data::user_repository;
 use crate::domain::user::{LoginUser, RegisterUser};
-use crate::infrastructure::{config::Config, jwt, hash};
+use crate::infrastructure::{config::Config, hash};
 use actix_web::{HttpResponse, Responder, get, post, web};
 use sqlx::PgPool;
 use crate::infrastructure::jwt::JwtService;
@@ -58,7 +58,7 @@ async fn login(
         return Ok(HttpResponse::Unauthorized().finish());
     }
 
-    let token = JwtService::generate_jwt(&cfg.jwt_secret, user.id)
+    let token = JwtService::generate_token(&cfg.jwt_secret, user.id)
         .map_err(|_| actix_web::error::ErrorInternalServerError("jwt error"))?;
 
     Ok(HttpResponse::Ok().json(TokenResponse {
@@ -67,5 +67,7 @@ async fn login(
 }
 
 pub fn configure(cfg: &mut web::ServiceConfig) {
-    cfg.service(health).service(register).service(login);
+    cfg.service(health)
+        .service(register)
+        .service(login);
 }

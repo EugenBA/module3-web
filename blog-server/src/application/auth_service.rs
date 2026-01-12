@@ -24,17 +24,17 @@ where
     }
 
     #[instrument(skip(self))]
-    pub async fn register(&self, email: String, password: String) -> Result<User, DomainError> {
+    pub async fn register(&self, username: String, password: String) -> Result<User, DomainError> {
         let hash = hash_password(&password).map_err(|err| DomainError::Internal(err.to_string()))?;
-        let user = User::new(email.to_lowercase(), hash);
+        let user = User::new(username.to_lowercase(), hash);
         self.repo.create(user).await.map_err(DomainError::from)
     }
 
     #[instrument(skip(self))]
-    pub async fn login(&self, email: &str, password: &str) -> Result<String, DomainError> {
+    pub async fn login(&self, username: &str, password: &str) -> Result<String, DomainError> {
         let user = self
             .repo
-            .find_by_email(&email.to_lowercase())
+            .find_by_name(&username.to_lowercase())
             .await
             .map_err(DomainError::from)?
             .ok_or_else(|| DomainError::Unauthorized)?;
@@ -46,7 +46,7 @@ where
         }
 
         self.keys
-            .generate_token(user.id, user.username)
+            .generate_token(user.id, user.username.as_str())
             .map_err(|err| DomainError::Internal(err.to_string()))
     }
 

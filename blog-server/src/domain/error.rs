@@ -4,8 +4,8 @@ use thiserror::Error;
 pub enum DomainError {
     #[error("User not found {0}")]
     UserNotFound(String),
-    #[error("User already exists")]
-    UserAlreadyExists,
+    #[error("User {0} already exists ")]
+    UserAlreadyExists(String),
     #[error("Invalid credentials")]
     InvalidCredentials,
     #[error("Post not found")]
@@ -15,5 +15,7 @@ pub enum DomainError {
     #[error("Unauthorized user")]
     Unauthorized,
     #[error("Internal error {0}")]
-    Internal(String)
+    Internal(String),
+    #[error("Database error: {0}")]
+    DatabaseError(#[from] sqlx::Error),
 }

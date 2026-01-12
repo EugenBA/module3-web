@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct User {
     pub(crate) id: i64,
     pub(crate) username: String,
@@ -18,4 +18,16 @@ pub(crate) struct RegisterUser {
 pub(crate) struct LoginUser {
     pub(crate) username: String,
     pub(crate) password: String,
+}
+
+impl User {
+    pub(crate) fn new(username: String, hash: String) -> Self {
+        Self{
+            id: 0,
+            username,
+            email: "".to_string(),
+            password_hash: hash,
+            created_at: 0,
+        }
+    }
 }

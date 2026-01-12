@@ -26,10 +26,10 @@ impl FromRequest for AuthenticatedUser {
     }
 }
 
-pub async fn extract_user_from_token<'a>(
+pub async fn extract_user_from_token(
     token: &str,
     keys: &JwtService,
-    auth_service: &AuthService<InDbUserRepository<'a>>,
+    auth_service: &AuthService<InDbUserRepository>,
 ) -> Result<AuthenticatedUser, Error> {
     let claims = keys
         .verify_token(token)
