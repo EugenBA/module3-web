@@ -2,13 +2,13 @@ use serde::{Deserialize, Serialize};
 
 //Реализуйте метод new для создания нового поста.
 #[derive(Debug, Serialize, Deserialize)]
-struct Post {
-    id: i64,
-    title: String,
-    content: String,
-    author_id: i64,
-    created_at: i64,
-    updated_at: i64,
+pub(crate) struct Post {
+    pub(crate) id: i64,
+    pub(crate) title: String,
+    pub(crate) content: String,
+    pub(crate) author_id: i64,
+    pub(crate) created_at: i64,
+    pub(crate) updated_at: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

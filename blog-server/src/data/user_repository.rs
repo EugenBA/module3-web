@@ -1,5 +1,3 @@
-use std::ops::Deref;
-use std::sync::Arc;
 use sqlx::{PgPool, Row};
 use tonic::async_trait;
 use crate::domain::{user::User, error::DomainError};
@@ -14,7 +12,7 @@ pub trait UserRepository: Send + Sync {
 
 #[derive(Debug)]
 pub(crate)struct InDbUserRepository {
-    pool: Arc<PgPool>,
+    pool: PgPool,
 }
 
 
@@ -24,22 +22,28 @@ impl UserRepository for InDbUserRepository{
         &self,
         user: User,
     ) -> Result<User, DomainError> {
-        let result_user = user.clone();
-        if let Some(_) = self.find_by_name(user.username.as_str()).await?{
-            return Err(DomainError::UserAlreadyExists(result_user.username));
+        if let Some(_) = self.find_by_name(user.username.as_str()).await? {
+            return Err(DomainError::UserAlreadyExists(user.username));
         }
-        sqlx::query(
+        let row = sqlx::query(
             r#"
         INSERT INTO users (username, email, password_hash)
         VALUES ($1, $2, $3)
+        RETURNING id, username, email, password_hash, created_at
         "#,
         )
             .bind(user.username)
             .bind(user.email)
             .bind(user.password_hash)
-            .execute(self.pool.deref())
+            .fetch_one(&self.pool)
             .await?;
-        Ok(result_user)
+        Ok(User {
+            id: row.get("id"),
+            username: row.get("username"),
+            email: row.get("username"),
+            password_hash: row.get("password_hash"),
+            created_at: row.get("created_at")
+        })
     }
 
     async fn find_by_name(&self, username: &str) -> Result<Option<User>, DomainError> {
@@ -51,7 +55,7 @@ impl UserRepository for InDbUserRepository{
         "#,
         )
             .bind(username)
-            .fetch_optional(self.pool.deref())
+            .fetch_optional(&self.pool)
             .await?;
 
         Ok(row.map(|r| User {
@@ -72,7 +76,7 @@ impl UserRepository for InDbUserRepository{
         "#,
         )
             .bind(id)
-            .fetch_optional(self.pool.deref())
+            .fetch_optional(&self.pool)
             .await?;
 
         Ok(row.map(|r| User {
@@ -85,7 +89,7 @@ impl UserRepository for InDbUserRepository{
     }
 }
 impl InDbUserRepository {
-    pub(crate)fn new(pool: Arc<PgPool>) -> Self {
+    pub(crate)fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }

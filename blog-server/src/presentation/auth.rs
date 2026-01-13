@@ -1,7 +1,6 @@
 use actix_web::dev::Payload;
 use actix_web::{error::ErrorUnauthorized, Error, FromRequest, HttpMessage, HttpRequest};
 use futures_util::future::{ready, Ready};
-use uuid::Uuid;
 
 use crate::application::auth_service::AuthService;
 use crate::data::user_repository::InDbUserRepository;
