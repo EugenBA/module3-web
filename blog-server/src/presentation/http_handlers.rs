@@ -1,7 +1,6 @@
 use actix_web::{get, post, web, HttpMessage, HttpRequest, HttpResponse, Scope};
 use tracing::info;
 
-use crate::data::user_repository::InDbUserRepository;
 use crate::domain::error::{BlogError, DomainError};
 use crate::presentation::auth::AuthenticatedUser;
 use crate::application::blog_service::BlogService;
