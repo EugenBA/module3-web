@@ -1,73 +1,176 @@
-use crate::data::user_repository;
-use crate::domain::user::{LoginUser, RegisterUser};
-use crate::infrastructure::{config::Config, hash};
-use actix_web::{HttpResponse, Responder, get, post, web};
-use sqlx::PgPool;
-use crate::infrastructure::jwt::JwtService;
+use actix_web::{get, post, web, HttpMessage, HttpRequest, HttpResponse, Scope};
+use tracing::info;
+use uuid::Uuid;
 
-#[get("/health")]
-async fn health() -> impl Responder {
-    HttpResponse::Ok().json(serde_json::json!({"status":"ok"}))
+use crate::data::user_repository::InDbUserRepository;
+use crate::domain::error::DomainError;
+use crate::presentation::auth::AuthenticatedUser;
+
+
+pub fn scope() -> Scope {
+    web::scope("")
+        .service(create_account)
+        .service(get_account)
+        .service(list_accounts)
+        .service(deposit)
+        .service(withdraw)
+        .service(transfer)
 }
 
-#[post("/register")]
-async fn register(
-    pool: web::Data<PgPool>,
-    body: web::Json<RegisterUser>,
-) -> actix_web::Result<impl Responder> {
-    let email = body.email.trim().to_lowercase();
-    if email.is_empty() || body.password.len() < 6 {
-        return Ok(HttpResponse::BadRequest().json(serde_json::json!({
-            "error": "invalid input"
-        })));
-    }
-
-    let pw_hash = hash::hash_password(&body.password)
-        .map_err(|_| actix_web::error::ErrorInternalServerError("hash error"))?;
-
-    let user_id = uuid::Uuid::new_v4();
-
-    let res = user_repository::create_user(&pool, user_id, &email, &pw_hash).await;
-    match res {
-        Ok(_) => Ok(HttpResponse::Created().finish()),
-        Err(sqlx::Error::Database(db_err)) if db_err.is_unique_violation() => {
-            Ok(HttpResponse::Conflict().json(serde_json::json!({"error":"email taken"})))
-        }
-        Err(_) => Err(actix_web::error::ErrorInternalServerError("db error")),
+fn ensure_owner(owner_id: i64, user: &AuthenticatedUser) -> Result<(), DomainError> {
+    if owner_id != user.id {
+        Err(DomainError::Unauthorized)
+    } else {
+        Ok(())
     }
 }
 
-#[post("/login")]
-async fn login(
-    pool: web::Data<PgPool>,
-    cfg: web::Data<Config>,
-    body: web::Json<LoginUser>,
-) -> actix_web::Result<impl Responder> {
-    let username = body.username.trim().to_lowercase();
+#[post("/accounts")]
+async fn create_account(
+    req: HttpRequest,
+    user: AuthenticatedUser,
+    bank: web::Data<BankService<InMemoryAccountRepository>>,
+    payload: web::Json<CreateAccountRequest>,
+) -> Result<HttpResponse, BankError> {
+    let account = bank
+        .create_account(payload.id, user.id, payload.initial)
+        .await?;
 
-    let user = match user_repository::find_user(&pool, &username).await {
-        Ok(Some(u)) => u,
-        Ok(None) => return Ok(HttpResponse::Unauthorized().finish()),
-        Err(_) => return Err(actix_web::error::ErrorInternalServerError("db error")),
-    };
+    info!(
+        request_id = %request_id(&req),
+        user_id = %user.id,
+        account_id = account.id,
+        "account created"
+    );
 
-    let ok = hash::verify_password(&body.password, &user.password_hash)
-        .map_err(|_| actix_web::error::ErrorInternalServerError("verify error"))?;
+    Ok(HttpResponse::Created().json(AccountResponse::from(account)))
+}
 
-    if !ok {
-        return Ok(HttpResponse::Unauthorized().finish());
+#[get("/accounts/{id}")]
+async fn get_account(
+    req: HttpRequest,
+    user: AuthenticatedUser,
+    bank: web::Data<BankService<InMemoryAccountRepository>>,
+    path: web::Path<u32>,
+) -> Result<HttpResponse, BankError> {
+    let account = bank.get_account(path.into_inner()).await?;
+    ensure_owner(account.owner_id, &user)?;
+    let response = AccountResponse::from(account);
+
+    info!(
+        request_id = %request_id(&req),
+        user_id = %user.id,
+        account_id = response.id,
+        "account fetched"
+    );
+
+    Ok(HttpResponse::Ok().json(response))
+}
+
+#[get("/accounts")]
+async fn list_accounts(
+    req: HttpRequest,
+    user: AuthenticatedUser,
+    bank: web::Data<BankService<InMemoryAccountRepository>>,
+) -> Result<HttpResponse, BankError> {
+    let accounts = bank.list_accounts(user.id).await?;
+    let response: Vec<_> = accounts.into_iter().map(AccountResponse::from).collect();
+
+    info!(
+        request_id = %request_id(&req),
+        user_id = %user.id,
+        "accounts listed"
+    );
+
+    Ok(HttpResponse::Ok().json(response))
+}
+
+#[post("/accounts/{id}/deposit")]
+async fn deposit(
+    req: HttpRequest,
+    user: AuthenticatedUser,
+    bank: web::Data<BankService<InMemoryAccountRepository>>,
+    path: web::Path<u32>,
+    payload: web::Json<AmountRequest>,
+) -> Result<HttpResponse, BankError> {
+    let account_id = path.into_inner();
+    let account = bank.get_account(account_id).await?;
+    ensure_owner(account.owner_id, &user)?;
+
+    let account = bank.deposit(account_id, payload.amount).await?;
+    let response = AccountResponse::from(account);
+
+    info!(
+        request_id = %request_id(&req),
+        user_id = %user.id,
+        account_id = response.id,
+        amount = payload.amount,
+        "deposit successful"
+    );
+
+    Ok(HttpResponse::Ok().json(response))
+}
+
+#[post("/accounts/{id}/withdraw")]
+async fn withdraw(
+    req: HttpRequest,
+    user: AuthenticatedUser,
+    bank: web::Data<BankService<InMemoryAccountRepository>>,
+    path: web::Path<u32>,
+    payload: web::Json<AmountRequest>,
+) -> Result<HttpResponse, BankError> {
+    let account_id = path.into_inner();
+    let account = bank.get_account(account_id).await?;
+    ensure_owner(account.owner_id, &user)?;
+
+    let account = bank.withdraw(account_id, payload.amount).await?;
+    let response = AccountResponse::from(account);
+
+    info!(
+        request_id = %request_id(&req),
+        user_id = %user.id,
+        account_id = response.id,
+        amount = payload.amount,
+        "withdraw successful"
+    );
+
+    Ok(HttpResponse::Ok().json(response))
+}
+
+#[post("/transfers")]
+async fn transfer(
+    req: HttpRequest,
+    user: AuthenticatedUser,
+    bank: web::Data<BankService<InMemoryAccountRepository>>,
+    payload: web::Json<TransferRequest>,
+) -> Result<HttpResponse, BankError> {
+    if payload.from == payload.to {
+        return Err(BankError::Validation(
+            "source and destination must differ".into(),
+        ));
     }
 
-    let token = JwtService::generate_token(&cfg.jwt_secret, user.id)
-        .map_err(|_| actix_web::error::ErrorInternalServerError("jwt error"))?;
+    let account = bank.get_account(payload.from).await?;
+    ensure_owner(account.owner_id, &user)?;
 
-    Ok(HttpResponse::Ok().json(TokenResponse {
-        access_token: token,
-    }))
+    bank.transfer(payload.from, payload.to, payload.amount).await?;
+
+    info!(
+        request_id = %request_id(&req),
+        user_id = %user.id,
+        from = payload.from,
+        to = payload.to,
+        amount = payload.amount,
+        "transfer successful"
+    );
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({ "status": "transferred" })))
 }
 
-pub fn configure(cfg: &mut web::ServiceConfig) {
-    cfg.service(health)
-        .service(register)
-        .service(login);
+fn request_id(req: &HttpRequest) -> String {
+    req.extensions()
+        .get::<crate::presentation::middleware::RequestId>()
+        .map(|rid| rid.0.clone())
+        .unwrap_or_else(|| "unknown".into())
 }
+

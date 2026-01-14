@@ -176,7 +176,7 @@ blog-server/
 
     Создайте файл blog-server/migrations/20250101000001_create_users.sql:
         Создайте таблицу users с полями: id (BIGSERIAL PRIMARY KEY), username (VARCHAR, UNIQUE), email (VARCHAR, UNIQUE), password_hash (VARCHAR), created_at (TIMESTAMP WITH TIME ZONE).
-        Добавьте индексы на username и email для быстрого поиска.
+        Добавьте индексы на username и emaiil для быстрого поиска.
     Создайте файл blog-server/migrations/20250101000002_create_posts.sql:
         Создайте таблицу posts с полями: id (BIGSERIAL PRIMARY KEY), title (VARCHAR), content (TEXT), author_id (BIGINT, FOREIGN KEY на users.id), created_at, updated_at (TIMESTAMP WITH TIME ZONE).
         Добавьте внешний ключ на users(id) с ON DELETE CASCADE.

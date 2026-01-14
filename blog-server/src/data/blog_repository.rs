@@ -1,13 +1,13 @@
 use sqlx::{PgPool, Row};
 use tonic::async_trait;
 use crate::domain::{post::Post, error::DomainError};
-
+use crate::domain::post::{CreatePost, UpdatePost};
 
 #[async_trait]
-pub trait PostRepository: Send + Sync {
-    async fn create(&self, post: Post) -> Result<Post, DomainError>;
+pub trait BlogRepository: Send + Sync {
+    async fn create(&self, author_id: i64,  crete_post: CreatePost) -> Result<Post, DomainError>;
     async fn find_by_id(&self, id: i64) -> Result<Option<Post>, DomainError>;
-    async fn update_post(&self, post: Post) -> Result<Post, DomainError>;
+    async fn update_post(&self, post_id: i64, update_post: UpdatePost) -> Result<Post, DomainError>;
     async fn delete_post(&self, id: i64) -> Result<(), DomainError>;
 }
 
@@ -18,10 +18,11 @@ pub(crate)struct InDbPostRepository {
 
 
 #[async_trait]
-impl PostRepository for InDbPostRepository{
+impl BlogRepository for InDbPostRepository{
     async fn create(
         &self,
-        post: Post,
+        author_id: i64,
+        create_post: CreatePost,
     ) -> Result<Post, DomainError> {
         let row = sqlx::query(
             r#"
@@ -30,9 +31,9 @@ impl PostRepository for InDbPostRepository{
         RETURNING id, title, content, author_id, created_at, update_at
         "#,
         )
-            .bind(post.title)
-            .bind(post.content)
-            .bind(post.author_id)
+            .bind(create_post.title)
+            .bind(create_post.content)
+            .bind(author_id)
             .fetch_one(&self.pool)
             .await?;
         Ok(Post {
@@ -67,7 +68,7 @@ impl PostRepository for InDbPostRepository{
         }))
     }
 
-    async fn update_post(&self, post: Post) -> Result<Post, DomainError> {
+    async fn update_post(&self,post_id: i64, update_post: UpdatePost) -> Result<Post, DomainError> {
         let row = sqlx::query(
             r#"
         UPDATE post
@@ -76,9 +77,9 @@ impl PostRepository for InDbPostRepository{
         RETURNING id, title, content, author_id, created_at, updated_at
         "#,
         )
-            .bind(post.id)
-            .bind(post.title)
-            .bind(post.content)
+            .bind(post_id)
+            .bind(update_post.title)
+            .bind(update_post.content)
             .fetch_one(&self.pool)
             .await?;
 

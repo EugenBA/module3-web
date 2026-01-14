@@ -11,14 +11,19 @@ pub(crate) struct Post {
     pub(crate) updated_at: i64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct CreatePost {
-    title: String,
-    content: String,
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub(crate) struct CreatePost {
+    pub(crate) title: String,
+    pub(crate) content: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct UpdatePost {
-    title: String,
-    content: String,
+pub(crate) struct UpdatePost {
+    pub(crate) title: String,
+    pub(crate) content: String,
+}
+impl CreatePost {
+    pub fn new(title: String, content: String) -> Self {
+        Self { title, content }
+    }
 }
