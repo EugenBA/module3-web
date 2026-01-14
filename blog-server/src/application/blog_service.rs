@@ -32,30 +32,19 @@ where
     }
 
     #[instrument(skip(self))]
-    pub async fn update_post(&self, post_id: i64, update_post: UpdatePost) -> Result<Vec<Account>, BankError> {
-        self.repo.list_for_user(owner).await.map_err(BankError::from)
+    pub async fn update_post(&self, post_id: i64, update_post: UpdatePost) -> Result<Post, BlogError> {
+        Ok(self.repo.update_post(post_id, update_post.clone()).await.map_err(BlogError::from)?)
     }
-
+    
+    #[instrument(skip(self))]
+    pub async fn delete_post(&self, post_id: i64) -> Result<(), BlogError> {
+        Ok(self.repo.delete_post(post_id).await.map_err(BlogError::from)?)
+    }
 
     #[instrument(skip(self))]
-    pub async fn get_post(&self, id: u32) -> Result<Account, BankError> {
-        match self.repo.get(id).await.map_err(BankError::from)? {
-            Some(account) => Ok(account),
-            None => Err(BankError::NotFound(format!("account {}", id))),
-        }
+    pub async fn get_posts(&self, author_id: i64) -> Result<Vec<Post>, BlogError> {
+        Ok(self.repo.get_posts(author_id).await.map_err(BlogError::from)?)
     }
-
-
-
-    #[instrument(skip(self))]
-    pub async fn delete_post(&self, id: u32, amount: i64) -> Result<Account, BankError> {
-        let mut account = self.get_account(id).await?;
-        let amount = Amount::new(amount).map_err(BankError::from)?;
-        account.deposit(amount);
-        self.repo.upsert(account.clone()).await.map_err(BankError::from)?;
-        Ok(account)
-    }
-
 }
 
 

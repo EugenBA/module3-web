@@ -1,20 +1,19 @@
 use actix_web::{get, post, web, HttpMessage, HttpRequest, HttpResponse, Scope};
 use tracing::info;
-use uuid::Uuid;
 
 use crate::data::user_repository::InDbUserRepository;
-use crate::domain::error::DomainError;
+use crate::domain::error::{BlogError, DomainError};
 use crate::presentation::auth::AuthenticatedUser;
+use crate::application::blog_service::BlogService;
+use crate::data::blog_repository::InDbPostRepository;
+use crate::domain::post::CreatePost;
 
+#[derive(Clone)]
+pub struct RequestId(pub String);
 
 pub fn scope() -> Scope {
     web::scope("")
-        .service(create_account)
-        .service(get_account)
-        .service(list_accounts)
-        .service(deposit)
-        .service(withdraw)
-        .service(transfer)
+        .service(create_post)
 }
 
 fn ensure_owner(owner_id: i64, user: &AuthenticatedUser) -> Result<(), DomainError> {
@@ -25,27 +24,26 @@ fn ensure_owner(owner_id: i64, user: &AuthenticatedUser) -> Result<(), DomainErr
     }
 }
 
-#[post("/accounts")]
-async fn create_account(
+#[post("/api/post")]
+async fn create_post(
     req: HttpRequest,
     user: AuthenticatedUser,
-    bank: web::Data<BankService<InMemoryAccountRepository>>,
-    payload: web::Json<CreateAccountRequest>,
-) -> Result<HttpResponse, BankError> {
-    let account = bank
-        .create_account(payload.id, user.id, payload.initial)
+    blog: web::Data<BlogService<InDbPostRepository>>,
+    payload: web::Json<CreatePost>,
+) -> Result<HttpResponse, BlogError> {
+    let post = blog
+        .create_post(payload.title.clone(), payload.content.clone(), user.id)
         .await?;
 
     info!(
         request_id = %request_id(&req),
         user_id = %user.id,
-        account_id = account.id,
-        "account created"
+        "post created"
     );
 
-    Ok(HttpResponse::Created().json(AccountResponse::from(account)))
+    Ok(HttpResponse::Created().json(post))
 }
-
+/*
 #[get("/accounts/{id}")]
 async fn get_account(
     req: HttpRequest,
@@ -166,10 +164,10 @@ async fn transfer(
 
     Ok(HttpResponse::Ok().json(serde_json::json!({ "status": "transferred" })))
 }
-
+*/
 fn request_id(req: &HttpRequest) -> String {
     req.extensions()
-        .get::<crate::presentation::middleware::RequestId>()
+        .get::<RequestId>()
         .map(|rid| rid.0.clone())
         .unwrap_or_else(|| "unknown".into())
 }

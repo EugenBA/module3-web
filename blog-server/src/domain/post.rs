@@ -17,7 +17,7 @@ pub(crate) struct CreatePost {
     pub(crate) content: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub(crate) struct UpdatePost {
     pub(crate) title: String,
     pub(crate) content: String,
