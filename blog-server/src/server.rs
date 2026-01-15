@@ -13,7 +13,6 @@ use actix_web::middleware::{DefaultHeaders, Logger};
 use actix_web::{App, HttpServer, web};
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
-use crate::presentation::http_handlers::{create_post, delete_post, get_post, update_post};
 
 pub(crate) async fn start_server() -> std::io::Result<()> {
     init_logging();
@@ -53,15 +52,14 @@ pub(crate) async fn start_server() -> std::io::Result<()> {
             .wrap(cors)
             .app_data(web::Data::new(blog_service.clone()))
             .app_data(web::Data::new(auth_service.clone()))
-            .service(http_handlers::public_auth_scope())
-            .service( web::scope("/api/post/{id}")
+            .service(
+                web::scope("/api")
+                    .service(http_handlers::public_scope())
+                    .service(
+                        web::scope("")
                             .wrap(JwtAuthMiddleware::new(auth_service.keys().clone()))
-                            .service(create_post)
-                            .service(update_post)
-                            .service(delete_post)
+                            .service(http_handlers::protected_scope())
                     )
-            .service(web::scope("/api/post")
-                .service(get_post)
             )
     })
     .bind((config.host.as_str(), config.port))?

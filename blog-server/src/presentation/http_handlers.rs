@@ -6,28 +6,33 @@ use crate::domain::error::{BlogError, DomainError};
 use crate::domain::post::{CreatePost, UpdatePost};
 use crate::domain::user::{LoginUser, RegisterUser, TokenResponse};
 use crate::presentation::auth::AuthenticatedUser;
-use actix_web::{HttpMessage, HttpRequest, HttpResponse, Scope, delete, get, post, put, web};
+use actix_web::{HttpMessage, HttpRequest, HttpResponse, Scope, delete, get, post, put, web, Responder};
+use chrono::{DateTime, Utc};
+use serde::Serialize;
 use tracing::info;
 
 #[derive(Clone)]
 pub(crate) struct RequestId(pub String);
 
+#[derive(Debug, Serialize)]
+pub struct HealthResponse {
+    pub status: &'static str,
+    pub timestamp: DateTime<Utc>,
+}
+
 pub(crate) fn protected_scope() -> Scope {
-    web::scope("/api/post")
+    web::scope("")
         .service(create_post)
         .service(update_post)
         .service(delete_post)
 }
 
-pub(crate) fn public_auth_scope() -> Scope {
-    web::scope("/api/auth")
+pub(crate) fn public_scope() -> Scope {
+    web::scope("")
+        .route("/health", web::get().to(health))
+        .route("/api/post/{id}", web::get().to(get_post))
         .service(register)
         .service(login)
-}
-
-pub(crate) fn public_post_scope() -> Scope {
-    web::scope("/api/post")
-        .service(get_post)
 }
 
 fn ensure_owner(owner_id: i64, user: &AuthenticatedUser) -> Result<(), DomainError> {
@@ -36,6 +41,13 @@ fn ensure_owner(owner_id: i64, user: &AuthenticatedUser) -> Result<(), DomainErr
     } else {
         Ok(())
     }
+}
+
+async fn health() -> impl Responder {
+    HttpResponse::Ok().json(HealthResponse {
+        status: "ok",
+        timestamp: Utc::now(),
+    })
 }
 
 #[post("/api/post")]
@@ -58,7 +70,7 @@ async fn create_post(
     Ok(HttpResponse::Created().json(post))
 }
 
-#[get("/api/post/{id}")]
+//#[get("/api/post/{id}")]
 async fn get_post(
     req: HttpRequest,
     blog: web::Data<BlogService<InDbPostRepository>>,
