@@ -6,10 +6,11 @@ use crate::domain::post::{CreatePost, UpdatePost};
 #[async_trait]
 pub trait BlogRepository: Send + Sync {
     async fn create(&self, author_id: i64,  crete_post: CreatePost) -> Result<Post, DomainError>;
-    async fn find_by_id(&self, id: i64) -> Result<Option<Post>, DomainError>;
-    async fn update_post(&self, post_id: i64, update_post: UpdatePost) -> Result<Post, DomainError>;
-    async fn delete_post(&self, id: i64) -> Result<(), DomainError>;
+    async fn get_post(&self, post_id: i64) -> Result<Option<Post>, DomainError>;
+    async fn update_post(&self, post_id: i64, author_id: i64, update_post: UpdatePost) -> Result<Post, DomainError>;
+    async fn delete_post(&self, post_id: i64, author_id: i64) -> Result<(), DomainError>;
     async fn get_posts(&self, author_id: i64) -> Result<Vec<Post>, DomainError>;
+    async fn find_post(&self, post_id: i64, author_id: i64) -> Result<Option<Post>, DomainError>;
 }
 
 #[derive(Debug)]
@@ -47,7 +48,7 @@ impl BlogRepository for InDbPostRepository{
         })
     }
 
-    async fn find_by_id(&self, id: i64) -> Result<Option<Post>, DomainError> {
+    async fn get_post(&self, post_id: i64) -> Result<Option<Post>, DomainError> {
         let row= sqlx::query(
             r#"
         SELECT id, title, content, author_id, created_at, updated_at
@@ -55,7 +56,7 @@ impl BlogRepository for InDbPostRepository{
         WHERE id = $1
         "#,
         )
-            .bind(id)
+            .bind(post_id)
             .fetch_optional(&self.pool)
             .await?;
 
@@ -69,7 +70,10 @@ impl BlogRepository for InDbPostRepository{
         }))
     }
 
-    async fn update_post(&self,post_id: i64, update_post: UpdatePost) -> Result<Post, DomainError> {
+    async fn update_post(&self, post_id: i64, author_id: i64, update_post: UpdatePost) -> Result<Post, DomainError> {
+        if let None = self.find_post(post_id, author_id).await? {
+            return Err(DomainError::PostNotFound)
+        }
         let row = sqlx::query(
             r#"
         UPDATE post
@@ -84,7 +88,7 @@ impl BlogRepository for InDbPostRepository{
             .fetch_one(&self.pool)
             .await?;
 
-        Ok(Post{
+        Ok(Post {
             id: row.get("id"),
             title: row.get("title"),
             content: row.get("content"),
@@ -94,14 +98,17 @@ impl BlogRepository for InDbPostRepository{
         })
     }
 
-    async fn delete_post(&self, id: i64) -> Result<(), DomainError> {
+    async fn delete_post(&self, post_id: i64, author_id: i64) -> Result<(), DomainError> {
+        if let None = self.find_post(post_id, author_id).await? {
+            return Err(DomainError::PostNotFound)
+        }
         sqlx::query(
             r#"
         DELETE post
         WHERE id = #1
         "#,
         )
-            .bind(id)
+            .bind(post_id)
             .fetch_optional(&self.pool)
             .await?;
         Ok(())
@@ -127,6 +134,30 @@ impl BlogRepository for InDbPostRepository{
             created_at: r.get("created_at"),
             updated_at: r.get("updated_at")
         }).into_iter().collect())
+    }
+    
+    async fn find_post(&self, post_id: i64, author_id: i64) -> Result<Option<Post>, DomainError> {
+        let row = sqlx::query(
+            r#"
+        SELECT id, title, content, author_id, created_at, updated_at
+        FROM post
+        WHERE id = #1 and author_id = #2
+        
+        "#,
+        )
+            .bind(post_id)
+            .bind(author_id)
+            .fetch_optional(&self.pool)
+            .await?;
+
+        Ok(row.map (|r| Post{
+            id: r.get("id"),
+            title: r.get("title"),
+            content: r.get("content"),
+            author_id: r.get("author_id"),
+            created_at: r.get("created_at"),
+            updated_at: r.get("updated_at")
+        }))
     }
 
 }

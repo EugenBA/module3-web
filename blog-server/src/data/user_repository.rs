@@ -22,7 +22,7 @@ impl UserRepository for InDbUserRepository{
         &self,
         user: User,
     ) -> Result<User, DomainError> {
-        if let Some(_) = self.find_by_name(user.username.as_str()).await? {
+        if let None = self.find_by_name(user.username.as_str()).await? {
             return Err(DomainError::UserAlreadyExists(user.username));
         }
         let row = sqlx::query(

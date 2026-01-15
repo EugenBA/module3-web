@@ -20,16 +20,13 @@ sqlx= { version = "0.8" , features = [
 tonic="0.14"
 serde = { version = "1.0", features = ["derive"] }
 anyhow = "1.0"
-dotenvy = "0.15.7"
+dotenvy = "0.15"
 thiserror = "2.0"
 argon2 = "0.5"
 password-hash = "0.5"
-uuid = { version = "1.18", features = ["v4"] }
-chrono = "0.4"
-serde_json = "1.0.148"
-log = "0.4.29"
-actix-web-httpauth = "0.8.2"
+chrono = { version = "0.4", features = ["serde"] }
+serde_json = "1.0"
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "chrono"] }
-futures-util = "0.3.31"
-actix-service = "2.0.3"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "chrono", "time"] }
+futures-util = "0.3"
+actix-service = "2.0"
