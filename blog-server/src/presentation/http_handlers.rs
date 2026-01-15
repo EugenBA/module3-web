@@ -13,16 +13,20 @@ use tracing::info;
 pub(crate) struct RequestId(pub String);
 
 pub(crate) fn protected_scope() -> Scope {
-    web::scope("")
+    web::scope("/api/post")
         .service(create_post)
         .service(update_post)
         .service(delete_post)
 }
 
-pub(crate) fn public_scope() -> Scope {
-    web::scope("")
+pub(crate) fn public_auth_scope() -> Scope {
+    web::scope("/api/auth")
         .service(register)
         .service(login)
+}
+
+pub(crate) fn public_post_scope() -> Scope {
+    web::scope("/api/post")
         .service(get_post)
 }
 
