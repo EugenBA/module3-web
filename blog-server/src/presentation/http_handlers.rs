@@ -7,14 +7,23 @@ use crate::application::blog_service::BlogService;
 use crate::data::blog_repository::InDbPostRepository;
 use crate::data::user_repository::InDbUserRepository;
 use crate::domain::post::{CreatePost, UpdatePost};
-use crate::domain::user::{LoginUser, RegisterUser};
+use crate::domain::user::{LoginUser, RegisterUser, TokenResponse};
 
 #[derive(Clone)]
-pub struct RequestId(pub String);
+pub(crate) struct RequestId(pub String);
 
-pub fn scope() -> Scope {
+pub(crate) fn protected_scope() -> Scope {
     web::scope("")
         .service(create_post)
+        .service(update_post)
+        .service(delete_post)
+}
+
+pub(crate) fn public_scope() -> Scope {
+    web::scope("")
+        .service(register)
+        .service(login)
+        .service(get_post)
 }
 
 fn ensure_owner(owner_id: i64, user: &AuthenticatedUser) -> Result<(), DomainError> {
@@ -101,21 +110,21 @@ async fn delete_post(
     );
     Ok(HttpResponse::NoContent().into())
 }
-/*
+
 #[post("/api/auth/register")]
 async fn register(
     req: HttpRequest,
     auth: web::Data<AuthService<InDbUserRepository>>,
     payload: web::Json<RegisterUser>,
 ) -> Result<HttpResponse, BlogError> {
-    auth.register(payload., user.id).await?;
+    let user = auth.register(payload.clone()).await?;
     info!(
         request_id = %request_id(&req),
-        user_id = %user.id,
-        post_id = %path.into_inner(),
+        username = %payload.username,
+        email = %payload.username,
         "register user"
     );
-    Ok(HttpResponse::NoContent().into())
+    Ok(HttpResponse::Created().json(user))
 }
 
 #[post("/api/auth/login")]
@@ -124,16 +133,16 @@ async fn login(
     auth: web::Data<AuthService<InDbUserRepository>>,
     payload: web::Json<LoginUser>,
 ) -> Result<HttpResponse, BlogError> {
-    auth.login(path.clone(), user.id).await?;
+    let jwt = auth.login(payload.clone()).await?;
     info!(
         request_id = %request_id(&req),
-        user_id = %user.id,
-        post_id = %path.into_inner(),
+        username= payload.username,
         "login user"
     );
-    Ok(HttpResponse::NoContent().into())
+    Ok(HttpResponse::Ok().json(TokenResponse { access_token: jwt,
+        username: payload.username.clone() }))
 }
-*/
+
 fn request_id(req: &HttpRequest) -> String {
     req.extensions()
         .get::<RequestId>()

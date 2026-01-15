@@ -19,7 +19,7 @@ pub(crate) struct JwtService {
 }
 
 impl JwtService {
-    fn new(secret: &str) -> Self {
+    pub(crate) fn new(secret: &str) -> Self {
         JwtService {
             encoding: EncodingKey::from_secret(secret.as_bytes()),
             decoding: DecodingKey::from_secret(secret.as_bytes()),

@@ -11,9 +11,10 @@ pub trait BlogRepository: Send + Sync {
     async fn delete_post(&self, post_id: i64, author_id: i64) -> Result<(), DomainError>;
     async fn get_posts(&self, author_id: i64) -> Result<Vec<Post>, DomainError>;
     async fn find_post(&self, post_id: i64, author_id: i64) -> Result<Option<Post>, DomainError>;
+    fn new (pool: PgPool) -> Self;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate)struct InDbPostRepository {
     pool: PgPool,
 }
@@ -159,6 +160,7 @@ impl BlogRepository for InDbPostRepository{
             updated_at: r.get("updated_at")
         }))
     }
+    fn new (pool: PgPool) -> Self {Self{pool}}
 
 }
 impl InDbPostRepository {

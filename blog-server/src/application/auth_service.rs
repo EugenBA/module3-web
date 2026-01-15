@@ -2,6 +2,7 @@ use std::sync::Arc;
 use tracing::instrument;
 use crate::data::user_repository::UserRepository;
 use crate::domain::{error::DomainError, user::User};
+use crate::domain::user::{LoginUser, RegisterUser};
 use crate::infrastructure::jwt::JwtService;
 use crate::infrastructure::hash::{hash_password, verify_password};
 
@@ -24,23 +25,24 @@ where
     }
 
     #[instrument(skip(self))]
-    pub async fn register(&self, username: String, password: String) -> Result<User, DomainError> {
-        let hash = hash_password(&password).map_err(|err| DomainError::Internal(err.to_string()))?;
-        let user = User::new(username.to_lowercase(), hash);
+    pub async fn register(&self, register_user: RegisterUser) -> Result<User, DomainError> {
+        let hash = hash_password(&register_user.password).map_err(|err| DomainError::Internal(err.to_string()))?;
+        let user = User::new(register_user.username.to_lowercase(), register_user.email,
+                             hash);
         self.repo.create(user).await.map_err(DomainError::from)
     }
 
     #[instrument(skip(self))]
-    pub async fn login(&self, username: &str, password: &str) -> Result<String, DomainError> {
+    pub async fn login(&self, login_user: LoginUser) -> Result<String, DomainError> {
         let user = self
             .repo
-            .find_by_name(&username.to_lowercase())
+            .find_by_name(&login_user.username.to_lowercase())
             .await
             .map_err(DomainError::from)?
             .ok_or_else(|| DomainError::Unauthorized)?;
 
         let is_valid =
-            verify_password(password, &user.password_hash).map_err(|_| DomainError::Unauthorized)?;
+            verify_password(&login_user.password, &user.password_hash).map_err(|_| DomainError::Unauthorized)?;
         if !is_valid {
             return Err(DomainError::Unauthorized);
         }

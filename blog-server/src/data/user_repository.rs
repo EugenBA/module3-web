@@ -8,9 +8,10 @@ pub trait UserRepository: Send + Sync {
     async fn create(&self, user: User) -> Result<User, DomainError>;
     async fn find_by_name(&self, name: &str) -> Result<Option<User>, DomainError>;
     async fn find_by_id(&self, id: i64) -> Result<Option<User>, DomainError>;
+    fn new(pool: PgPool) -> Self;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate)struct InDbUserRepository {
     pool: PgPool,
 }
@@ -87,6 +88,8 @@ impl UserRepository for InDbUserRepository{
             created_at: r.get("created_at"),
         }))
     }
+
+    fn new(pool: PgPool) -> Self { Self { pool }}
 }
 impl InDbUserRepository {
     pub(crate)fn new(pool: PgPool) -> Self {

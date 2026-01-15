@@ -3,18 +3,18 @@ use serde::Deserialize;
 #[derive(Clone, Debug, Deserialize)]
 pub(crate) struct Config {
     pub(crate) database_url: String,
-    host: String,
-    port: u16,
+    pub(crate) host: String,
+    pub(crate) port: u16,
 }
 
 #[derive(Clone, Debug, Deserialize)]
 pub(crate) struct JwtConfig {
-    secret: String,
+    pub(crate) secret: String,
 }
 
 #[derive(Clone, Debug, Deserialize)]
 pub(crate) struct CorsConfig {
-    origin: String,
+    pub(crate) origins: Vec<String>,
 }
 
 impl Config {
@@ -41,7 +41,12 @@ impl JwtConfig {
 
 impl CorsConfig {
     pub fn from_env() -> anyhow::Result<Self> {
-        let origin = std::env::var("CORS_ORIGIN")?;
-        Ok(Self { origin })
+        let cors_origins = std::env::var("CORS_ORIGINS")
+            .unwrap_or_else(|_| "*".into())
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+        Ok(Self { origins: cors_origins })
     }
 }
