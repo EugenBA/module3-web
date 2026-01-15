@@ -2,7 +2,7 @@ use crate::application::auth_service::AuthService;
 use crate::application::blog_service::BlogService;
 use crate::data::blog_repository::InDbPostRepository;
 use crate::data::user_repository::InDbUserRepository;
-use crate::infrastructure::config::{Config, CorsConfig, JwtConfig};
+use crate::infrastructure::config::{AppConfig};
 use crate::infrastructure::database;
 use crate::infrastructure::jwt::JwtService;
 use crate::infrastructure::logging::init_logging;
@@ -18,10 +18,7 @@ use crate::presentation::http_handlers::{create_post, delete_post, get_post, upd
 pub(crate) async fn start_server() -> std::io::Result<()> {
     init_logging();
 
-    let config = Config::from_env().expect("invalid configuration data base");
-    let jwt_config = JwtConfig::from_env().expect("invalid configuration jwt keys");
-    let cors_config = CorsConfig::from_env().expect("invalid configuration CORS");
-
+    let config = AppConfig::from_env().expect("invalid configuration data base");
     let pool = PgPoolOptions::new()
         .max_connections(10)
         .connect(&config.database_url)
@@ -36,11 +33,11 @@ pub(crate) async fn start_server() -> std::io::Result<()> {
 
     let auth_service = AuthService::new(
         Arc::clone(&user_repo),
-        JwtService::new(&jwt_config.secret.clone()),
+        JwtService::new(&config.secret.clone()),
     );
     let blog_service = BlogService::new(Arc::clone(&blog_repo));
 
-    let config_data = cors_config.clone();
+    let config_data = config.clone();
 
     HttpServer::new(move || {
         let cors = build_cors(&config_data);
@@ -72,7 +69,7 @@ pub(crate) async fn start_server() -> std::io::Result<()> {
     .await
 }
 
-fn build_cors(config: &CorsConfig) -> Cors {
+fn build_cors(config: &AppConfig) -> Cors {
     let mut cors = Cors::default()
         .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
         .allowed_headers(vec![
