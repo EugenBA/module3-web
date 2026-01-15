@@ -8,13 +8,13 @@ pub(crate) struct User {
     pub(crate) password_hash: String,
     pub(crate) created_at: i64,
 }
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 pub(crate) struct RegisterUser {
-    username: String,
+    pub(crate) username: String,
     pub(crate) email: String,
     pub(crate) password: String,
 }
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 pub(crate) struct LoginUser {
     pub(crate) username: String,
     pub(crate) password: String,

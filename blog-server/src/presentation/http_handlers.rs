@@ -1,11 +1,13 @@
 use actix_web::{delete, get, post, put, web, HttpMessage, HttpRequest, HttpResponse, Scope};
 use tracing::info;
-
+use crate::application::auth_service::AuthService;
 use crate::domain::error::{BlogError, DomainError};
 use crate::presentation::auth::AuthenticatedUser;
 use crate::application::blog_service::BlogService;
 use crate::data::blog_repository::InDbPostRepository;
+use crate::data::user_repository::InDbUserRepository;
 use crate::domain::post::{CreatePost, UpdatePost};
+use crate::domain::user::{LoginUser, RegisterUser};
 
 #[derive(Clone)]
 pub struct RequestId(pub String);
@@ -99,7 +101,39 @@ async fn delete_post(
     );
     Ok(HttpResponse::NoContent().into())
 }
+/*
+#[post("/api/auth/register")]
+async fn register(
+    req: HttpRequest,
+    auth: web::Data<AuthService<InDbUserRepository>>,
+    payload: web::Json<RegisterUser>,
+) -> Result<HttpResponse, BlogError> {
+    auth.register(payload., user.id).await?;
+    info!(
+        request_id = %request_id(&req),
+        user_id = %user.id,
+        post_id = %path.into_inner(),
+        "register user"
+    );
+    Ok(HttpResponse::NoContent().into())
+}
 
+#[post("/api/auth/login")]
+async fn login(
+    req: HttpRequest,
+    auth: web::Data<AuthService<InDbUserRepository>>,
+    payload: web::Json<LoginUser>,
+) -> Result<HttpResponse, BlogError> {
+    auth.login(path.clone(), user.id).await?;
+    info!(
+        request_id = %request_id(&req),
+        user_id = %user.id,
+        post_id = %path.into_inner(),
+        "login user"
+    );
+    Ok(HttpResponse::NoContent().into())
+}
+*/
 fn request_id(req: &HttpRequest) -> String {
     req.extensions()
         .get::<RequestId>()
