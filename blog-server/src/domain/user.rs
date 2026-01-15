@@ -28,7 +28,7 @@ pub(crate) struct TokenResponse {
 
 impl User {
     pub(crate) fn new(username: String, email: String, hash: String) -> Self {
-        Self{
+        Self {
             id: 0,
             username,
             email,

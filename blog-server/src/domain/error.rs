@@ -57,17 +57,17 @@ struct ErrorBody<'a> {
     details: Option<serde_json::Value>,
 }
 
-impl  From<DomainError> for BlogError{
+impl From<DomainError> for BlogError {
     fn from(value: DomainError) -> Self {
         match value {
-            DomainError::UserNotFound(e) => { BlogError::UserNotFound(e)}
-            DomainError::UserAlreadyExists(e) => { BlogError::UserAlreadyExists(e)}
-            DomainError::InvalidCredentials => { BlogError::InvalidCredentials}
-            DomainError::PostNotFound => { BlogError::PostNotFound}
-            DomainError::Forbidden => {BlogError::Forbidden}
-            DomainError::Unauthorized => {BlogError::Unauthorized}
-            DomainError::Internal(e) => { BlogError::Internal(e)}
-            DomainError::DatabaseError(e) => { BlogError::DatabaseError(e.to_string())}
+            DomainError::UserNotFound(e) => BlogError::UserNotFound(e),
+            DomainError::UserAlreadyExists(e) => BlogError::UserAlreadyExists(e),
+            DomainError::InvalidCredentials => BlogError::InvalidCredentials,
+            DomainError::PostNotFound => BlogError::PostNotFound,
+            DomainError::Forbidden => BlogError::Forbidden,
+            DomainError::Unauthorized => BlogError::Unauthorized,
+            DomainError::Internal(e) => BlogError::Internal(e),
+            DomainError::DatabaseError(e) => BlogError::DatabaseError(e.to_string()),
         }
     }
 }

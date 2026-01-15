@@ -1,7 +1,6 @@
+use crate::domain::{error::DomainError, user::User};
 use sqlx::{PgPool, Row};
 use tonic::async_trait;
-use crate::domain::{user::User, error::DomainError};
-
 
 #[async_trait]
 pub trait UserRepository: Send + Sync {
@@ -12,17 +11,13 @@ pub trait UserRepository: Send + Sync {
 }
 
 #[derive(Debug, Clone)]
-pub(crate)struct InDbUserRepository {
+pub(crate) struct InDbUserRepository {
     pool: PgPool,
 }
 
-
 #[async_trait]
-impl UserRepository for InDbUserRepository{
-    async fn create(
-        &self,
-        user: User,
-    ) -> Result<User, DomainError> {
+impl UserRepository for InDbUserRepository {
+    async fn create(&self, user: User) -> Result<User, DomainError> {
         if let None = self.find_by_name(user.username.as_str()).await? {
             return Err(DomainError::UserAlreadyExists(user.username));
         }
@@ -33,31 +28,31 @@ impl UserRepository for InDbUserRepository{
         RETURNING id, username, email, password_hash, created_at
         "#,
         )
-            .bind(user.username)
-            .bind(user.email)
-            .bind(user.password_hash)
-            .fetch_one(&self.pool)
-            .await?;
+        .bind(user.username)
+        .bind(user.email)
+        .bind(user.password_hash)
+        .fetch_one(&self.pool)
+        .await?;
         Ok(User {
             id: row.get("id"),
             username: row.get("username"),
             email: row.get("username"),
             password_hash: row.get("password_hash"),
-            created_at: row.get("created_at")
+            created_at: row.get("created_at"),
         })
     }
 
     async fn find_by_name(&self, username: &str) -> Result<Option<User>, DomainError> {
-        let row= sqlx::query(
+        let row = sqlx::query(
             r#"
         SELECT id, username, email, password_hash, created_at
         FROM users
         WHERE username = $1
         "#,
         )
-            .bind(username)
-            .fetch_optional(&self.pool)
-            .await?;
+        .bind(username)
+        .fetch_optional(&self.pool)
+        .await?;
 
         Ok(row.map(|r| User {
             id: r.get("id"),
@@ -76,9 +71,9 @@ impl UserRepository for InDbUserRepository{
         WHERE id = $1
         "#,
         )
-            .bind(id)
-            .fetch_optional(&self.pool)
-            .await?;
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
 
         Ok(row.map(|r| User {
             id: r.get("id"),
@@ -89,13 +84,12 @@ impl UserRepository for InDbUserRepository{
         }))
     }
 
-    fn new(pool: PgPool) -> Self { Self { pool }}
-}
-impl InDbUserRepository {
-    pub(crate)fn new(pool: PgPool) -> Self {
+    fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
-
-
-
+impl InDbUserRepository {
+    pub(crate) fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}

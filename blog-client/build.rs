@@ -3,4 +3,3 @@ fn main() {
 
     println!("cargo:rerun-if-changed=proto/blog.proto")
 }
-

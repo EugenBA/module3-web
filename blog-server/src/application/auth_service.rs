@@ -1,10 +1,10 @@
+use crate::data::user_repository::UserRepository;
+use crate::domain::user::{LoginUser, RegisterUser};
+use crate::domain::{error::DomainError, user::User};
+use crate::infrastructure::hash::{hash_password, verify_password};
+use crate::infrastructure::jwt::JwtService;
 use std::sync::Arc;
 use tracing::instrument;
-use crate::data::user_repository::UserRepository;
-use crate::domain::{error::DomainError, user::User};
-use crate::domain::user::{LoginUser, RegisterUser};
-use crate::infrastructure::jwt::JwtService;
-use crate::infrastructure::hash::{hash_password, verify_password};
 
 #[derive(Clone)]
 pub struct AuthService<R: UserRepository + 'static> {
@@ -26,9 +26,13 @@ where
 
     #[instrument(skip(self))]
     pub async fn register(&self, register_user: RegisterUser) -> Result<User, DomainError> {
-        let hash = hash_password(&register_user.password).map_err(|err| DomainError::Internal(err.to_string()))?;
-        let user = User::new(register_user.username.to_lowercase(), register_user.email,
-                             hash);
+        let hash = hash_password(&register_user.password)
+            .map_err(|err| DomainError::Internal(err.to_string()))?;
+        let user = User::new(
+            register_user.username.to_lowercase(),
+            register_user.email,
+            hash,
+        );
         self.repo.create(user).await.map_err(DomainError::from)
     }
 
@@ -41,8 +45,8 @@ where
             .map_err(DomainError::from)?
             .ok_or_else(|| DomainError::Unauthorized)?;
 
-        let is_valid =
-            verify_password(&login_user.password, &user.password_hash).map_err(|_| DomainError::Unauthorized)?;
+        let is_valid = verify_password(&login_user.password, &user.password_hash)
+            .map_err(|_| DomainError::Unauthorized)?;
         if !is_valid {
             return Err(DomainError::Unauthorized);
         }

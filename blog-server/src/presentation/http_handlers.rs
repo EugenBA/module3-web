@@ -1,13 +1,13 @@
-use actix_web::{delete, get, post, put, web, HttpMessage, HttpRequest, HttpResponse, Scope};
-use tracing::info;
 use crate::application::auth_service::AuthService;
-use crate::domain::error::{BlogError, DomainError};
-use crate::presentation::auth::AuthenticatedUser;
 use crate::application::blog_service::BlogService;
 use crate::data::blog_repository::InDbPostRepository;
 use crate::data::user_repository::InDbUserRepository;
+use crate::domain::error::{BlogError, DomainError};
 use crate::domain::post::{CreatePost, UpdatePost};
 use crate::domain::user::{LoginUser, RegisterUser, TokenResponse};
+use crate::presentation::auth::AuthenticatedUser;
+use actix_web::{HttpMessage, HttpRequest, HttpResponse, Scope, delete, get, post, put, web};
+use tracing::info;
 
 #[derive(Clone)]
 pub(crate) struct RequestId(pub String);
@@ -60,9 +60,7 @@ async fn get_post(
     blog: web::Data<BlogService<InDbPostRepository>>,
     path: web::Path<i64>,
 ) -> Result<HttpResponse, BlogError> {
-    let post = blog
-        .get_post(path.clone())
-        .await?;
+    let post = blog.get_post(path.clone()).await?;
 
     info!(
         request_id = %request_id(&req),
@@ -139,8 +137,10 @@ async fn login(
         username= payload.username,
         "login user"
     );
-    Ok(HttpResponse::Ok().json(TokenResponse { access_token: jwt,
-        username: payload.username.clone() }))
+    Ok(HttpResponse::Ok().json(TokenResponse {
+        access_token: jwt,
+        username: payload.username.clone(),
+    }))
 }
 
 fn request_id(req: &HttpRequest) -> String {
@@ -149,4 +149,3 @@ fn request_id(req: &HttpRequest) -> String {
         .map(|rid| rid.0.clone())
         .unwrap_or_else(|| "unknown".into())
 }
-

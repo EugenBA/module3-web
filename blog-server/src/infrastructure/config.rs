@@ -47,6 +47,8 @@ impl CorsConfig {
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
             .collect();
-        Ok(Self { origins: cors_origins })
+        Ok(Self {
+            origins: cors_origins,
+        })
     }
 }
