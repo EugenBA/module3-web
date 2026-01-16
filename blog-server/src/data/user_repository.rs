@@ -18,7 +18,7 @@ pub(crate) struct InDbUserRepository {
 #[async_trait]
 impl UserRepository for InDbUserRepository {
     async fn create(&self, user: User) -> Result<User, DomainError> {
-        if let None = self.find_by_name(user.username.as_str()).await? {
+        if let Some(_) = self.find_by_name(user.username.as_str()).await? {
             return Err(DomainError::UserAlreadyExists(user.username));
         }
         let row = sqlx::query(

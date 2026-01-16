@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -6,7 +7,7 @@ pub(crate) struct User {
     pub(crate) username: String,
     pub(crate) email: String,
     pub(crate) password_hash: String,
-    pub(crate) created_at: i64,
+    pub(crate) created_at: DateTime<Utc>,
 }
 #[derive(Debug, Deserialize, Clone)]
 pub(crate) struct RegisterUser {
@@ -33,7 +34,7 @@ impl User {
             username,
             email,
             password_hash: hash,
-            created_at: 0,
+            created_at: Utc::now(),
         }
     }
 }

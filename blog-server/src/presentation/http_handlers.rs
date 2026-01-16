@@ -30,7 +30,7 @@ pub(crate) fn protected_scope() -> Scope {
 pub(crate) fn public_scope() -> Scope {
     web::scope("")
         .route("/health", web::get().to(health))
-        .route("/api/post/{id}", web::get().to(get_post))
+        .route("/post/{id}", web::get().to(get_post))
         .service(register)
         .service(login)
 }
@@ -87,7 +87,7 @@ async fn get_post(
     Ok(HttpResponse::Created().json(post))
 }
 
-#[put("/api/post/{id}")]
+#[put("/post/{id}")]
 async fn update_post(
     req: HttpRequest,
     user: AuthenticatedUser,
@@ -108,7 +108,7 @@ async fn update_post(
     Ok(HttpResponse::Ok().json(post))
 }
 
-#[delete("/api/post/{id}")]
+#[delete("/post/{id}")]
 async fn delete_post(
     req: HttpRequest,
     user: AuthenticatedUser,
@@ -125,23 +125,26 @@ async fn delete_post(
     Ok(HttpResponse::NoContent().into())
 }
 
-#[post("/api/auth/register")]
+#[post("/auth/register")]
 async fn register(
     req: HttpRequest,
     auth: web::Data<AuthService<InDbUserRepository>>,
     payload: web::Json<RegisterUser>,
 ) -> Result<HttpResponse, BlogError> {
-    let user = auth.register(payload.clone()).await?;
+    let jwt = auth.register(payload.clone()).await?;
     info!(
         request_id = %request_id(&req),
         username = %payload.username,
         email = %payload.username,
         "register user"
     );
-    Ok(HttpResponse::Created().json(user))
+    Ok(HttpResponse::Ok().json(TokenResponse {
+        access_token: jwt,
+        username: payload.username.clone(),
+    }))
 }
 
-#[post("/api/auth/login")]
+#[post("/auth/login")]
 async fn login(
     req: HttpRequest,
     auth: web::Data<AuthService<InDbUserRepository>>,
