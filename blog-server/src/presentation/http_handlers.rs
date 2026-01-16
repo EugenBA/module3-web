@@ -35,14 +35,6 @@ pub(crate) fn public_scope() -> Scope {
         .service(login)
 }
 
-fn ensure_owner(owner_id: i64, user: &AuthenticatedUser) -> Result<(), DomainError> {
-    if owner_id != user.id {
-        Err(DomainError::Unauthorized)
-    } else {
-        Ok(())
-    }
-}
-
 async fn health() -> impl Responder {
     HttpResponse::Ok().json(HealthResponse {
         status: "ok",

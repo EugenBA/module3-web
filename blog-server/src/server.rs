@@ -35,9 +35,7 @@ pub(crate) async fn start_server() -> std::io::Result<()> {
         JwtService::new(&config.secret.clone()),
     );
     let blog_service = BlogService::new(Arc::clone(&blog_repo));
-
     let config_data = config.clone();
-
     HttpServer::new(move || {
         let cors = build_cors(&config_data);
         App::new()
@@ -76,7 +74,6 @@ fn build_cors(config: &AppConfig) -> Cors {
         ])
         .supports_credentials()
         .max_age(3600);
-
     for origin in &config.origins {
         cors = cors.allowed_origin(origin);
     }
