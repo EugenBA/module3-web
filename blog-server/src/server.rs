@@ -20,7 +20,7 @@ use tracing::{error, info};
 use crate::blog::proto_blog_service_server::ProtoBlogServiceServer;
 use crate::presentation::grpc_service::BlogGrpcService;
 
-pub(crate) async fn start_server() -> std::io::Result<()> {
+pub(crate) async fn start_server() -> Result<(), Error> {
     init_logging();
 
     let config = AppConfig::from_env().expect("invalid configuration data base");
@@ -43,9 +43,9 @@ pub(crate) async fn start_server() -> std::io::Result<()> {
     let blog_service = BlogService::new(Arc::clone(&blog_repo));
     let config_data = config.clone();
     let http_handle = start_http_server(config_data.clone(),
-                                       blog_service.clone(), auth_service.clone());
+                                       blog_service.clone(), auth_service.clone()).await?;
     let grpc_handle = start_grpc_server(config_data,
-                                        blog_service.clone(), auth_service.clone());
+                                        blog_service.clone(), auth_service.clone()).await?;
     tokio::select! {
         grpc_result = grpc_handle => {
             error!("gRPC server stopped: {:?}", grpc_result);
@@ -114,7 +114,7 @@ async fn start_grpc_server(config_data: AppConfig,
     let server = tonic::transport::Server::builder()
         .add_service(grpc_service_server)
         .serve(socket_add);
-    info!("gRPC server listening on ");
+    info!("gRPC server listening on {:?}", socket_add);
     let handle = tokio::spawn(async move {
         if let Err(e) = server.await {
             error!("gRPC server error: {}", e);
