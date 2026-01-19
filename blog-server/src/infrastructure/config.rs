@@ -5,8 +5,10 @@ pub(crate) struct AppConfig {
     pub(crate) database_url: String,
     pub(crate) host: String,
     pub(crate) port: u16,
+    pub(crate) grpc_port: u16,
     pub(crate) secret: String,
     pub(crate) origins: Vec<String>,
+
 }
 
 impl AppConfig {
@@ -15,6 +17,9 @@ impl AppConfig {
         let host = std::env::var("HOST").unwrap_or_else(|_| "127.0.0.1".into());
         let port = std::env::var("PORT")
             .unwrap_or_else(|_| "8080".into())
+            .parse()?;
+        let grpc_port = std::env::var("GRPC_PORT")
+            .unwrap_or_else(|_| "50051".into())
             .parse()?;
         let secret = std::env::var("JWT_SECRET")?;
         let origins = std::env::var("CORS_ORIGINS")
@@ -27,9 +32,9 @@ impl AppConfig {
             database_url,
             host,
             port,
+            grpc_port,
             secret,
             origins
-            
         })
     }
 }

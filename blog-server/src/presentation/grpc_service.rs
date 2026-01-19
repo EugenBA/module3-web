@@ -1,16 +1,13 @@
 
 use crate::blog::proto_blog_service_server::ProtoBlogService;
 use crate::domain::post::Post;
-use crate::domain::user::User;
 use tonic::{Request, Response, Status, metadata::MetadataMap};
 use tracing::{info, warn};
-use std::sync::Arc;
 use crate::{
     application::{
         blog_service::BlogService,
         auth_service::AuthService,
     },
-    infrastructure::jwt::JwtService,
     domain::{user::{RegisterUser,LoginUser},
              post::{CreatePost, UpdatePost},
         error::BlogError,
@@ -21,21 +18,18 @@ use crate::data::blog_repository::BlogRepository;
 use crate::data::user_repository::UserRepository;
 
 pub(crate) struct BlogGrpcService<R: BlogRepository + 'static, S: UserRepository + 'static> {
-    blog_service: Arc<BlogService<R>>,
-    auth_service: Arc<AuthService<S>>,
-    jwt_service: Arc<JwtService>,
+    blog_service: BlogService<R>,
+    auth_service: AuthService<S>,
 }
 
 impl<R:BlogRepository, S:UserRepository> BlogGrpcService<R, S> {
     pub fn new(
-        blog_service: Arc<BlogService<R>>,
-        auth_service: Arc<AuthService<S>>,
-        jwt_service: Arc<JwtService>,
+        blog_service: BlogService<R>,
+        auth_service: AuthService<S>,
     ) -> Self {
         Self {
             blog_service,
             auth_service,
-            jwt_service,
         }
     }
 
@@ -61,7 +55,7 @@ impl<R:BlogRepository, S:UserRepository> BlogGrpcService<R, S> {
     }
 
     fn get_user_id_from_token(&self, token: &str) -> Result<i64, Status> {
-        let claims = self.jwt_service
+        let claims = self.auth_service.keys()
             .verify_token(token)
             .map_err(|e| {
                 warn!("Invalid JWT token: {}", e);
@@ -85,18 +79,6 @@ impl<R:BlogRepository, S:UserRepository> BlogGrpcService<R, S> {
             BlogError::DatabaseError(_) => Status::internal("Database error"),
             BlogError::InvalidCredentials => Status::unauthenticated("Authentication error"),
             _ => Status::internal("Internal server error"),
-        }
-    }
-
-    fn to_proto_user(&self, user: User) -> ProtoUser {
-        ProtoUser {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            created_at: Some(prost_types::Timestamp {
-                seconds: user.created_at.timestamp(),
-                nanos: user.created_at.timestamp_subsec_nanos() as i32,
-            }),
         }
     }
 

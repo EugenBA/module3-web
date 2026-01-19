@@ -7,7 +7,7 @@ use std::sync::Arc;
 use tracing::instrument;
 
 #[derive(Clone)]
-pub struct AuthService<R: UserRepository + 'static> {
+pub(crate) struct AuthService<R: UserRepository + 'static> {
     repo: Arc<R>,
     keys: JwtService,
 }
