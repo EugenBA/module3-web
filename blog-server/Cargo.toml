@@ -30,3 +30,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "chrono", "time"] }
 futures-util = "0.3"
 actix-service = "2.0"
+prost-types = "0.14.3"
+
+[build-dependencies]
+tonic-prost-build = "0.14"

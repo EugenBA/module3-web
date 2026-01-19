@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 //Реализуйте метод new для создания нового поста.
@@ -7,8 +8,8 @@ pub(crate) struct Post {
     pub(crate) title: String,
     pub(crate) content: String,
     pub(crate) author_id: i64,
-    pub(crate) created_at: i64,
-    pub(crate) updated_at: i64,
+    pub(crate) created_at: DateTime<Utc>,
+    pub(crate) updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
