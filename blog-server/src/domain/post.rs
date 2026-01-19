@@ -26,7 +26,7 @@ pub(crate) struct UpdatePost {
 
 #[derive(Debug, Deserialize, Clone)]
 pub(crate) struct GetPaginationPost {
-    pub(crate) limit: u32,
+    pub(crate) limit: i64,
     pub(crate) offset: i64,
 }
 

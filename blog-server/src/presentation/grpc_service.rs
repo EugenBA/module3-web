@@ -161,7 +161,7 @@ impl<R:BlogRepository, S:UserRepository> ProtoBlogService for BlogGrpcService<R,
         };
 
         match self.auth_service.login(login_user).await {
-            Ok((token)) => {
+            Ok(token) => {
                 let response = TokenResponse {
                     username: req.username,
                     token,
@@ -281,28 +281,24 @@ impl<R:BlogRepository, S:UserRepository> ProtoBlogService for BlogGrpcService<R,
         }
     }
 
-    async fn list_posts(
+    async fn get_posts(
         &self,
-        request: Request<ListPostsRequest>,
-    ) -> Result<Response<ListPostsResponse>, Status> {
+        request: Request<GetPostsRequest>,
+    ) -> Result<Response<GetPostsResponse>, Status> {
         info!("ListPosts gRPC request received");
 
-        // Опционально: можем извлечь токен, но не требуем его для этого метода
-        let user_id = self.extract_token(request.metadata()).ok()
-            .and_then(|token| self.get_user_id_from_token(&token).ok());
-
         let req = request.into_inner();
-        let offset = req.offset.unwrap_or(0) as usize;
-        let limit = req.limit.unwrap_or(20) as usize;
+        let limit = req.limit.unwrap_or(20);
+        let offset = req.offset.unwrap_or(0);
 
-        match self.blog_service.list_posts(offset, limit, user_id.as_deref()).await {
+        match self.blog_service.get_posts(limit, offset).await {
             Ok(posts) => {
                 let proto_posts = posts
                     .into_iter()
                     .map(|post| self.to_proto_post(post))
                     .collect();
 
-                let response = ListPostsResponse { posts: proto_posts };
+                let response = GetPostsResponse { posts: proto_posts };
                 Ok(Response::new(response))
             }
             Err(e) => {

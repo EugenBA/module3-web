@@ -14,7 +14,7 @@ pub trait BlogRepository: Send + Sync {
         update_post: UpdatePost,
     ) -> Result<Post, DomainError>;
     async fn delete_post(&self, post_id: i64, author_id: i64) -> Result<(), DomainError>;
-    async fn get_posts(&self, author_id: i64) -> Result<Vec<Post>, DomainError>;
+    async fn get_posts(&self, limit: i64, offset: i64) -> Result<Vec<Post>, DomainError>;
     async fn find_post(&self, post_id: i64, author_id: i64) -> Result<Option<Post>, DomainError>;
     fn new(pool: PgPool) -> Self;
 }
@@ -120,17 +120,19 @@ impl BlogRepository for InDbPostRepository {
         Ok(())
     }
 
-    async fn get_posts(&self, author_id: i64) -> Result<Vec<Post>, DomainError> {
+    async fn get_posts(&self, limit: i64, offset: i64) -> Result<Vec<Post>, DomainError> {
         let row = sqlx::query(
             r#"
         SELECT id, title, content, author_id, created_at, updated_at
         FROM post
-        WHERE id = $1
+        ORDER BY created_at DESC
+            LIMIT $1 OFFSET $2
         "#,
         )
-        .bind(author_id)
-        .fetch_optional(&self.pool)
-        .await?;
+            .bind(limit)
+            .bind(offset)
+            .fetch_optional(&self.pool)
+            .await?;
 
         Ok(row
             .map(|r| Post {

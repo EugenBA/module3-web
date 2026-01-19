@@ -17,7 +17,7 @@ service ProtoBlogService {
 
   // Посты (публичные)
   rpc GetPost(GetPostRequest) returns (GetPostResponse);
-  rpc ListPosts(ListPostsRequest) returns (ListPostsResponse);
+  rpc GetPosts(GetPostsRequest) returns (GetPostsResponse);
 }
 
 // Сообщения для пользователей
@@ -74,12 +74,12 @@ message GetPostResponse {
   ProtoPost post = 1;
 }
 
-message ListPostsRequest {
-  optional int32 offset = 1;  // Смещение для пагинации
-  optional int32 limit = 2;   // Лимит для пагинации (по умолчанию 20)
+message GetPostsRequest {
+  optional int64 offset = 1;  // Смещение для пагинации
+  optional int64 limit = 2;   // Лимит для пагинации (по умолчанию 20)
 }
 
-message ListPostsResponse {
+message GetPostsResponse {
   repeated ProtoPost posts = 1;
 }
 

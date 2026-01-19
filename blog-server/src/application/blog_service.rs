@@ -58,10 +58,10 @@ where
     }
 
     #[instrument(skip(self))]
-    pub async fn get_posts(&self, author_id: i64) -> Result<Vec<Post>, BlogError> {
+    pub async fn get_posts(&self, limit: i64, offset: i64) -> Result<Vec<Post>, BlogError> {
         Ok(self
             .repo
-            .get_posts(author_id)
+            .get_posts(limit, offset)
             .await
             .map_err(BlogError::from)?)
     }

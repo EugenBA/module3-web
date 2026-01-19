@@ -2,8 +2,8 @@ use crate::application::auth_service::AuthService;
 use crate::application::blog_service::BlogService;
 use crate::data::blog_repository::InDbPostRepository;
 use crate::data::user_repository::InDbUserRepository;
-use crate::domain::error::{BlogError, DomainError};
-use crate::domain::post::{CreatePost, UpdatePost};
+use crate::domain::error::{BlogError};
+use crate::domain::post::{CreatePost, GetPaginationPost, UpdatePost};
 use crate::domain::user::{LoginUser, RegisterUser, TokenResponse};
 use crate::presentation::auth::AuthenticatedUser;
 use actix_web::{HttpMessage, HttpRequest, HttpResponse, Scope, delete, get, post, put, web, Responder};
@@ -73,10 +73,24 @@ async fn get_post(
     info!(
         request_id = %request_id(&req),
         post_id = %path.into_inner(),
-        "post created"
+        "get post"
     );
 
-    Ok(HttpResponse::Created().json(post))
+    Ok(HttpResponse::Accepted().json(post))
+}
+
+#[get("/api/posts")]
+async fn get_posts(
+    req: HttpRequest,
+    blog: web::Data<BlogService<InDbPostRepository>>,
+    payload: web::Json<GetPaginationPost>,
+) -> Result<HttpResponse, BlogError> {
+    let posts = blog.get_posts(payload.limit, payload.offset).await?;
+    info!(
+        request_id = %request_id(&req),
+        "get posts"
+    );
+    Ok(HttpResponse::Accepted().json(posts))
 }
 
 #[put("/post/{id}")]
