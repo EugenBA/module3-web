@@ -1,8 +1,10 @@
-// presentation/grpc_service.rs
-use tonic::{Request, Response, Status};
+
+use crate::blog::proto_blog_service_server::ProtoBlogService;
+use crate::domain::post::Post;
+use crate::domain::user::User;
+use tonic::{Request, Response, Status, metadata::MetadataMap};
 use tracing::{info, warn};
 use std::sync::Arc;
-
 use crate::{
     application::{
         blog_service::BlogService,
@@ -14,32 +16,21 @@ use crate::{
         error::BlogError,
     },
 };
+use crate::blog::*;
+use crate::data::blog_repository::BlogRepository;
+use crate::data::user_repository::UserRepository;
 
-// Импортируем сгенерированные protobuf-типы
-use blog::proto::{
-    blog_service_server::BlogService as ProtoBlogService,
-    CreateUserRequest, CreateUserResponse,
-    LoginUserRequest, LoginUserResponse,
-    CreatePostRequest, CreatePostResponse,
-    UpdatePostRequest, UpdatePostResponse,
-    DeletePostRequest, DeletePostResponse,
-    GetPostRequest, GetPostResponse,
-    ListPostsRequest, ListPostsResponse,
-    User as ProtoUser,
-    Post as ProtoPost,
-};
-
-pub struct BlogGrpcService {
-    blog_service: Arc<dyn BlogService>,
-    auth_service: Arc<dyn AuthService>,
-    jwt_service: Arc<dyn JwtService>,
+pub(crate) struct BlogGrpcService<R: BlogRepository + 'static, S: UserRepository + 'static> {
+    blog_service: Arc<BlogService<R>>,
+    auth_service: Arc<AuthService<S>>,
+    jwt_service: Arc<JwtService>,
 }
 
-impl BlogGrpcService {
+impl<R:BlogRepository, S:UserRepository> BlogGrpcService<R, S> {
     pub fn new(
-        blog_service: Arc<dyn BlogService>,
-        auth_service: Arc<dyn AuthService>,
-        jwt_service: Arc<dyn JwtService>,
+        blog_service: Arc<BlogService<R>>,
+        auth_service: Arc<AuthService<S>>,
+        jwt_service: Arc<JwtService>,
     ) -> Self {
         Self {
             blog_service,
@@ -48,8 +39,7 @@ impl BlogGrpcService {
         }
     }
 
-    fn extract_token(&self, request: &Request<()>) -> Result<String, Status> {
-        let metadata = request.metadata();
+    fn extract_token(&self, metadata: &MetadataMap) -> Result<String, Status> {
         let auth_header = metadata
             .get("authorization")
             .ok_or_else(|| {
@@ -70,7 +60,7 @@ impl BlogGrpcService {
         Ok(auth_header[7..].to_string())
     }
 
-    fn get_user_id_from_token(&self, token: &str) -> Result<String, Status> {
+    fn get_user_id_from_token(&self, token: &str) -> Result<i64, Status> {
         let claims = self.jwt_service
             .verify_token(token)
             .map_err(|e| {
@@ -78,27 +68,27 @@ impl BlogGrpcService {
                 Status::unauthenticated("Invalid token")
             })?;
 
-        Ok(claims.sub)
+        Ok(claims.user_id)
     }
 
-    fn authenticate_request(&self, request: &Request<()>) -> Result<String, Status> {
-        let token = self.extract_token(request)?;
+    fn authenticate_request(&self, metadata: &MetadataMap) -> Result<i64, Status> {
+        let token = self.extract_token(metadata)?;
         self.get_user_id_from_token(&token)
     }
 
-    fn map_app_error_to_status(&self, error: AppError) -> Status {
+    fn map_app_error_to_status(&self, error: BlogError) -> Status {
         match error {
-            AppError::NotFound(_) => Status::not_found(error.to_string()),
-            AppError::Unauthorized(_) => Status::unauthenticated(error.to_string()),
-            AppError::Validation(_) => Status::invalid_argument(error.to_string()),
-            AppError::AlreadyExists(_) => Status::already_exists(error.to_string()),
-            AppError::DatabaseError(_) => Status::internal("Database error"),
-            AppError::JwtError(_) => Status::unauthenticated("Authentication error"),
+            BlogError::NotFound(_) => Status::not_found(error.to_string()),
+            BlogError::Unauthorized => Status::unauthenticated("Unauthorized user"),
+            BlogError::Validation(_) => Status::invalid_argument(error.to_string()),
+            BlogError::UserAlreadyExists(_) => Status::already_exists(error.to_string()),
+            BlogError::DatabaseError(_) => Status::internal("Database error"),
+            BlogError::InvalidCredentials => Status::unauthenticated("Authentication error"),
             _ => Status::internal("Internal server error"),
         }
     }
 
-    fn to_proto_user(&self, user: crate::domain::models::User) -> ProtoUser {
+    fn to_proto_user(&self, user: User) -> ProtoUser {
         ProtoUser {
             id: user.id,
             username: user.username,
@@ -110,7 +100,7 @@ impl BlogGrpcService {
         }
     }
 
-    fn to_proto_post(&self, post: crate::domain::models::Post) -> ProtoPost {
+    fn to_proto_post(&self, post: Post) -> ProtoPost {
         ProtoPost {
             id: post.id,
             title: post.title,
@@ -120,39 +110,40 @@ impl BlogGrpcService {
                 seconds: post.created_at.timestamp(),
                 nanos: post.created_at.timestamp_subsec_nanos() as i32,
             }),
-            updated_at: post.updated_at.map(|dt| prost_types::Timestamp {
-                seconds: dt.timestamp(),
-                nanos: dt.timestamp_subsec_nanos() as i32,
+            updated_at: Some(prost_types::Timestamp {
+                seconds: post.updated_at.timestamp(),
+                nanos: post.updated_at.timestamp_subsec_nanos() as i32,
             }),
         }
     }
 }
 
 #[tonic::async_trait]
-impl ProtoBlogService for BlogGrpcService {
-    async fn create_user(
+impl<R:BlogRepository, S:UserRepository> ProtoBlogService for BlogGrpcService<R, S>{
+    async fn register_user(
         &self,
-        request: Request<CreateUserRequest>,
-    ) -> Result<Response<CreateUserResponse>, Status> {
+        request: Request<RegisterUserRequest>,
+    ) -> Result<Response<TokenResponse>, Status> {
         info!("CreateUser gRPC request received");
 
         let req = request.into_inner();
-        let command = CreateUserCommand {
-            username: req.username,
+        let register_user = RegisterUser {
+            username: req.username.clone(),
             email: req.email,
             password: req.password,
         };
 
-        match self.auth_service.register(command).await {
-            Ok(user) => {
-                let response = CreateUserResponse {
-                    user: Some(self.to_proto_user(user)),
+        match self.auth_service.register(register_user).await {
+            Ok(token) => {
+                let response = TokenResponse {
+                    token,
+                    username: req.username
                 };
                 Ok(Response::new(response))
             }
             Err(e) => {
                 warn!("CreateUser error: {}", e);
-                Err(self.map_app_error_to_status(e))
+                Err(self.map_app_error_to_status(e.into()))
             }
         }
     }
@@ -160,26 +151,26 @@ impl ProtoBlogService for BlogGrpcService {
     async fn login_user(
         &self,
         request: Request<LoginUserRequest>,
-    ) -> Result<Response<LoginUserResponse>, Status> {
+    ) -> Result<Response<TokenResponse>, Status> {
         info!("LoginUser gRPC request received");
 
         let req = request.into_inner();
-        let command = LoginCommand {
-            email: req.email,
+        let login_user = LoginUser {
+            username: req.username.clone(),
             password: req.password,
         };
 
-        match self.auth_service.login(command).await {
-            Ok((user, token)) => {
-                let response = LoginUserResponse {
-                    user: Some(self.to_proto_user(user)),
+        match self.auth_service.login(login_user).await {
+            Ok((token)) => {
+                let response = TokenResponse {
+                    username: req.username,
                     token,
                 };
                 Ok(Response::new(response))
             }
             Err(e) => {
                 warn!("LoginUser error: {}", e);
-                Err(self.map_app_error_to_status(e))
+                Err(self.map_app_error_to_status(e.into()))
             }
         }
     }
@@ -193,13 +184,13 @@ impl ProtoBlogService for BlogGrpcService {
         let user_id = self.authenticate_request(request.metadata())?;
         let req = request.into_inner();
 
-        let command = CreatePostCommand {
+        let create_post = CreatePost {
             title: req.title,
             content: req.content,
-            author_id: user_id,
         };
 
-        match self.blog_service.create_post(command).await {
+        match self.blog_service.create_post(create_post.title,
+                                            create_post.content, user_id).await {
             Ok(post) => {
                 let response = CreatePostResponse {
                     post: Some(self.to_proto_post(post)),
@@ -222,14 +213,12 @@ impl ProtoBlogService for BlogGrpcService {
         let user_id = self.authenticate_request(request.metadata())?;
         let req = request.into_inner();
 
-        let command = UpdatePostCommand {
-            id: req.id,
+        let update_post = UpdatePost {
             title: req.title,
             content: req.content,
-            author_id: user_id,
         };
 
-        match self.blog_service.update_post(command).await {
+        match self.blog_service.update_post(req.id, user_id, update_post).await {
             Ok(post) => {
                 let response = UpdatePostResponse {
                     post: Some(self.to_proto_post(post)),
@@ -252,7 +241,7 @@ impl ProtoBlogService for BlogGrpcService {
         let user_id = self.authenticate_request(request.metadata())?;
         let req = request.into_inner();
 
-        match self.blog_service.delete_post(req.id, &user_id).await {
+        match self.blog_service.delete_post(req.id, user_id).await {
             Ok(_) => {
                 let response = DeletePostResponse { success: true };
                 Ok(Response::new(response))
@@ -274,10 +263,16 @@ impl ProtoBlogService for BlogGrpcService {
 
         match self.blog_service.get_post(req.id).await {
             Ok(post) => {
-                let response = GetPostResponse {
-                    post: Some(self.to_proto_post(post)),
-                };
-                Ok(Response::new(response))
+                if let Some(post) = post{
+                    let response = GetPostResponse {
+                        post: Some(self.to_proto_post(post)),
+                    };
+                    Ok(Response::new(response))
+                }
+                else {
+                    warn!("GetPost error: empty posts");
+                    Err(self.map_app_error_to_status(BlogError::PostNotFound))
+                }
             }
             Err(e) => {
                 warn!("GetPost error: {}", e);

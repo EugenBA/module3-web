@@ -5,10 +5,10 @@ package blog;
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
 
-service BlogService {
+service ProtoBlogService {
   // Аутентификация и пользователи
-  rpc CreateUser(RegisterUserRequest) returns (RegisterUserResponse);
-  rpc LoginUser(LoginUserRequest) returns (LoginUserResponse);
+  rpc RegisterUser(RegisterUserRequest) returns (TokenResponse);
+  rpc LoginUser(LoginUserRequest) returns (TokenResponse);
 
   // Посты (требуют авторизации)
   rpc CreatePost(CreatePostRequest) returns (CreatePostResponse);
@@ -27,18 +27,15 @@ message RegisterUserRequest {
   string password = 3;
 }
 
-message RegisterUserResponse {
-  User user = 1;
-}
-
 message LoginUserRequest {
-  string email = 1;
-  string password = 2;
+  string username = 1;
+  string email = 2;
+  string password = 3;
 }
 
-message LoginUserResponse {
-  User user = 1;
-  string token = 2;
+message TokenResponse {
+  string token = 1;
+  string username = 2;
 }
 
 // Сообщения для постов
@@ -48,21 +45,21 @@ message CreatePostRequest {
 }
 
 message CreatePostResponse {
-  Post post = 1;
+  ProtoPost post = 1;
 }
 
 message UpdatePostRequest {
-  string id = 1;
+  int64 id = 1;
   string title = 2;
   string content = 3;
 }
 
 message UpdatePostResponse {
-  Post post = 1;
+  ProtoPost post = 1;
 }
 
 message DeletePostRequest {
-  string id = 1;
+  int64 id = 1;
 }
 
 message DeletePostResponse {
@@ -70,11 +67,11 @@ message DeletePostResponse {
 }
 
 message GetPostRequest {
-  string id = 1;
+  int64 id = 1;
 }
 
 message GetPostResponse {
-  Post post = 1;
+  ProtoPost post = 1;
 }
 
 message ListPostsRequest {
@@ -83,22 +80,22 @@ message ListPostsRequest {
 }
 
 message ListPostsResponse {
-  repeated Post posts = 1;
+  repeated ProtoPost posts = 1;
 }
 
 // Модели
-message User {
-  string id = 1;
+message ProtoUser {
+  int64 id = 1;
   string username = 2;
   string email = 3;
   google.protobuf.Timestamp created_at = 4;
 }
 
-message Post {
-  string id = 1;
+message ProtoPost {
+  int64 id = 1;
   string title = 2;
   string content = 3;
-  string author_id = 4;
+  int64 author_id = 4;
   google.protobuf.Timestamp created_at = 5;
   optional google.protobuf.Timestamp updated_at = 6;
 }

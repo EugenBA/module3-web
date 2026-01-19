@@ -5,7 +5,7 @@ mod infrastructure;
 mod presentation;
 mod server;
 
-pub mod exchange {
+pub mod blog {
     tonic::include_proto!("blog");
 }
 
