@@ -145,8 +145,8 @@ async fn register(
         "register user"
     );
     Ok(HttpResponse::Ok().json(TokenResponse {
-        access_token: jwt,
-        username: payload.username.clone(),
+        token: jwt,
+        user: payload.username.clone(),
     }))
 }
 
@@ -163,8 +163,8 @@ async fn login(
         "login user"
     );
     Ok(HttpResponse::Ok().json(TokenResponse {
-        access_token: jwt,
-        username: payload.username.clone(),
+        token: jwt,
+        user: payload.username.clone(),
     }))
 }
 

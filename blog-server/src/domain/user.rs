@@ -23,8 +23,8 @@ pub(crate) struct LoginUser {
 
 #[derive(Debug, Serialize, Clone)]
 pub(crate) struct TokenResponse {
-    pub(crate) access_token: String,
-    pub(crate) username: String,
+    pub(crate) token: String,
+    pub(crate) user: String,
 }
 
 impl User {
