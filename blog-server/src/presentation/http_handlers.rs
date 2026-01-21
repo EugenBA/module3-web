@@ -22,9 +22,9 @@ pub struct HealthResponse {
 
 pub(crate) fn protected_scope() -> Scope {
     web::scope("")
-        .service(create_post)
-        .service(update_post)
-        .service(delete_post)
+        .route("/posts", web::post().to(create_post))
+        .route("/posts/{id}", web::put().to(update_post))
+        .route("/posts/{id}", web::delete().to(delete_post))
 }
 
 pub(crate) fn public_scope() -> Scope {
@@ -43,7 +43,7 @@ async fn health() -> impl Responder {
     })
 }
 
-#[post("/posts")]
+//#[post("/posts")]
 async fn create_post(
     req: HttpRequest,
     user: AuthenticatedUser,
@@ -94,7 +94,7 @@ get_posts(
     Ok(HttpResponse::Accepted().json(posts))
 }
 
-#[put("/posts/{id}")]
+//#[put("/posts/{id}")]
 async fn update_post(
     req: HttpRequest,
     user: AuthenticatedUser,
@@ -115,7 +115,7 @@ async fn update_post(
     Ok(HttpResponse::Ok().json(post))
 }
 
-#[delete("/posts/{id}")]
+//#[delete("/posts/{id}")]
 async fn delete_post(
     req: HttpRequest,
     user: AuthenticatedUser,
