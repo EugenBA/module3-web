@@ -30,7 +30,8 @@ pub(crate) fn protected_scope() -> Scope {
 pub(crate) fn public_scope() -> Scope {
     web::scope("")
         .route("/health", web::get().to(health))
-        .route("/post/{id}", web::get().to(get_post))
+        .route("/posts", web::get().to(get_posts))
+        .route("/posts/{id}", web::get().to(get_post))
         .service(register)
         .service(login)
 }
@@ -42,7 +43,7 @@ async fn health() -> impl Responder {
     })
 }
 
-#[post("/api/post")]
+#[post("/posts")]
 async fn create_post(
     req: HttpRequest,
     user: AuthenticatedUser,
@@ -79,8 +80,8 @@ async fn get_post(
     Ok(HttpResponse::Accepted().json(post))
 }
 
-#[get("/api/posts")]
-async fn get_posts(
+async fn
+get_posts(
     req: HttpRequest,
     blog: web::Data<BlogService<InDbPostRepository>>,
     payload: web::Json<GetPaginationPost>,
@@ -93,7 +94,7 @@ async fn get_posts(
     Ok(HttpResponse::Accepted().json(posts))
 }
 
-#[put("/post/{id}")]
+#[put("/posts/{id}")]
 async fn update_post(
     req: HttpRequest,
     user: AuthenticatedUser,
@@ -114,7 +115,7 @@ async fn update_post(
     Ok(HttpResponse::Ok().json(post))
 }
 
-#[delete("/post/{id}")]
+#[delete("/posts/{id}")]
 async fn delete_post(
     req: HttpRequest,
     user: AuthenticatedUser,

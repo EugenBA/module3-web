@@ -83,12 +83,11 @@ async fn start_http_server(config_data: AppConfig,
             .app_data(web::Data::new(auth_service.clone()))
             .service(
                 web::scope("/api")
-                    .service(http_handlers::public_scope())
-                    .service(
-                        web::scope("")
-                            .wrap(JwtAuthMiddleware::new(auth_service.keys().clone()))
-                            .service(http_handlers::protected_scope())
-                    )
+                    .service(http_handlers::public_scope()))
+            .service(
+                web::scope("/api")
+                    .wrap(JwtAuthMiddleware::new(auth_service.keys().clone()))
+                    .service(http_handlers::protected_scope())
             )
     })
         .bind((config_data.host.as_str(), config_data.port))?
