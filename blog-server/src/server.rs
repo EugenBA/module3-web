@@ -83,12 +83,29 @@ async fn start_http_server(config_data: AppConfig,
             .app_data(web::Data::new(auth_service.clone()))
             .service(
                 web::scope("/api")
-                    .service(http_handlers::public_scope())
-            .service(
-                web::scope("")
-                    .wrap(JwtAuthMiddleware::new(auth_service.keys().clone()))
-                    .service(http_handlers::protected_scope())
-            ))
+                    // Аутентификация (публичная)
+                    .route("/health", web::get().to(http_handlers::health))
+                    .service(
+                        web::scope("/auth")
+                            .route("/register", web::post().to(http_handlers::register))
+                            .route("/login", web::post().to(http_handlers::login))
+                    )
+                    // Посты: публичные GET, защищенные другие методы
+                    .service(
+                        web::scope("/posts")
+                            // Публичные
+                            .route("", web::get().to(http_handlers::get_posts))
+                            .route("/{id}", web::get().to(http_handlers::get_post))
+                            // Защищенные (с middleware)
+                            .service(
+                                web::scope("")
+                                    .wrap(JwtAuthMiddleware::new(auth_service.keys().clone()))
+                                    .route("", web::post().to(http_handlers::create_post))
+                                    .route("/{id}", web::put().to(http_handlers::update_post))
+                                    .route("/{id}", web::delete().to(http_handlers::delete_post))
+                            )
+                    )
+            )
     })
         .bind((config_data.host.as_str(), config_data.port))?
         .run();

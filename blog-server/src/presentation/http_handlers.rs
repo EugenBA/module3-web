@@ -20,7 +20,7 @@ pub struct HealthResponse {
     pub timestamp: DateTime<Utc>,
 }
 
-pub(crate) fn protected_scope() -> Scope {
+/*pub(crate) fn protected_scope() -> Scope {
     web::scope("")
         .route("/posts", web::post().to(create_post))
         .route("/posts/{id}", web::put().to(update_post))
@@ -34,9 +34,9 @@ pub(crate) fn public_scope() -> Scope {
         .route("/posts/{id}", web::get().to(get_post))
         .service(register)
         .service(login)
-}
+}*/
 
-async fn health() -> impl Responder {
+pub(crate) async fn health() -> impl Responder {
     HttpResponse::Ok().json(HealthResponse {
         status: "ok",
         timestamp: Utc::now(),
@@ -44,7 +44,7 @@ async fn health() -> impl Responder {
 }
 
 //#[post("/posts")]
-async fn create_post(
+pub(crate) async fn create_post(
     req: HttpRequest,
     user: AuthenticatedUser,
     blog: web::Data<BlogService<InDbPostRepository>>,
@@ -64,7 +64,7 @@ async fn create_post(
 }
 
 //#[get("/api/post/{id}")]
-async fn get_post(
+pub(crate) async fn get_post(
     req: HttpRequest,
     blog: web::Data<BlogService<InDbPostRepository>>,
     path: web::Path<i64>,
@@ -80,11 +80,11 @@ async fn get_post(
     Ok(HttpResponse::Accepted().json(post))
 }
 
-async fn
+pub(crate) async fn
 get_posts(
     req: HttpRequest,
     blog: web::Data<BlogService<InDbPostRepository>>,
-    payload: web::Json<GetPaginationPost>,
+    payload: web::Query<GetPaginationPost>,
 ) -> Result<HttpResponse, BlogError> {
     let posts = blog.get_posts(payload.limit, payload.offset).await?;
     info!(
@@ -95,7 +95,7 @@ get_posts(
 }
 
 //#[put("/posts/{id}")]
-async fn update_post(
+pub(crate) async fn update_post(
     req: HttpRequest,
     user: AuthenticatedUser,
     blog: web::Data<BlogService<InDbPostRepository>>,
@@ -116,7 +116,7 @@ async fn update_post(
 }
 
 //#[delete("/posts/{id}")]
-async fn delete_post(
+pub(crate) async fn delete_post(
     req: HttpRequest,
     user: AuthenticatedUser,
     blog: web::Data<BlogService<InDbPostRepository>>,
@@ -132,8 +132,8 @@ async fn delete_post(
     Ok(HttpResponse::NoContent().into())
 }
 
-#[post("/auth/register")]
-async fn register(
+//#[post("/auth/register")]
+pub(crate) async fn register(
     req: HttpRequest,
     auth: web::Data<AuthService<InDbUserRepository>>,
     payload: web::Json<RegisterUser>,
@@ -151,8 +151,8 @@ async fn register(
     }))
 }
 
-#[post("/auth/login")]
-async fn login(
+//#[post("/auth/login")]
+pub(crate) async fn login(
     req: HttpRequest,
     auth: web::Data<AuthService<InDbUserRepository>>,
     payload: web::Json<LoginUser>,

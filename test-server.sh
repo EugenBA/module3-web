@@ -186,7 +186,7 @@ EOF
     response=$(make_request "POST" "/posts" "$data" true)
 
     if echo "$response" | grep -q '"id"'; then
-        POST_ID=$(echo "$response" | grep -o '"id":"[^"]*' | cut -d'"' -f4)
+        POST_ID=$(echo "$response" | grep -o '"id": [0-9]\+' | cut -d" " -f2)
         log_success "Пост создан успешно"
         log_info "ID поста: $POST_ID"
         print_json "$response"

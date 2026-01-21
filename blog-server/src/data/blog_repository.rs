@@ -29,9 +29,9 @@ impl BlogRepository for InDbPostRepository {
     async fn create(&self, author_id: i64, create_post: CreatePost) -> Result<Post, DomainError> {
         let row = sqlx::query(
             r#"
-        INSERT INTO post (title, content, author_id)
+        INSERT INTO posts (title, content, author_id)
         VALUES ($1, $2, $3)
-        RETURNING id, title, content, author_id, created_at, update_at
+        RETURNING id, title, content, author_id, created_at, updated_at
         "#,
         )
         .bind(create_post.title)
@@ -45,7 +45,7 @@ impl BlogRepository for InDbPostRepository {
             content: row.get("content"),
             author_id: row.get("author_id"),
             created_at: row.get("created_at"),
-            updated_at: row.get("update_at"),
+            updated_at: row.get("updated_at"),
         })
     }
 
@@ -53,7 +53,7 @@ impl BlogRepository for InDbPostRepository {
         let row = sqlx::query(
             r#"
         SELECT id, title, content, author_id, created_at, updated_at
-        FROM post
+        FROM posts
         WHERE id = $1
         "#,
         )
@@ -82,7 +82,7 @@ impl BlogRepository for InDbPostRepository {
         }
         let row = sqlx::query(
             r#"
-        UPDATE post
+        UPDATE posts
         set title=#2, content=#3, updated_at=NOW()
         WHERE id = #1
         RETURNING id, title, content, author_id, created_at, updated_at
@@ -110,7 +110,7 @@ impl BlogRepository for InDbPostRepository {
         }
         sqlx::query(
             r#"
-        DELETE post
+        DELETE posts
         WHERE id = #1
         "#,
         )
@@ -124,7 +124,7 @@ impl BlogRepository for InDbPostRepository {
         let row = sqlx::query(
             r#"
         SELECT id, title, content, author_id, created_at, updated_at
-        FROM post
+        FROM posts
         ORDER BY created_at DESC
             LIMIT $1 OFFSET $2
         "#,
@@ -151,7 +151,7 @@ impl BlogRepository for InDbPostRepository {
         let row = sqlx::query(
             r#"
         SELECT id, title, content, author_id, created_at, updated_at
-        FROM post
+        FROM posts
         WHERE id = #1 and author_id = #2
         
         "#,
