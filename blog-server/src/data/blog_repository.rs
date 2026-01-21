@@ -83,12 +83,13 @@ impl BlogRepository for InDbPostRepository {
         let row = sqlx::query(
             r#"
         UPDATE posts
-        set title=#2, content=#3, updated_at=NOW()
-        WHERE id = #1
+        set title=#3, content=#4, updated_at=NOW()
+        WHERE id=#1 and autor_id=#2
         RETURNING id, title, content, author_id, created_at, updated_at
         "#,
         )
         .bind(post_id)
+        .bind(author_id)
         .bind(update_post.title)
         .bind(update_post.content)
         .fetch_one(&self.pool)
@@ -129,10 +130,10 @@ impl BlogRepository for InDbPostRepository {
             LIMIT $1 OFFSET $2
         "#,
         )
-            .bind(limit)
-            .bind(offset)
-            .fetch_optional(&self.pool)
-            .await?;
+        .bind(limit)
+        .bind(offset)
+        .fetch_optional(&self.pool)
+        .await?;
 
         Ok(row
             .map(|r| Post {
@@ -152,7 +153,7 @@ impl BlogRepository for InDbPostRepository {
             r#"
         SELECT id, title, content, author_id, created_at, updated_at
         FROM posts
-        WHERE id = #1 and author_id = #2
+        WHERE id=#1 and author_id=#2
         
         "#,
         )
