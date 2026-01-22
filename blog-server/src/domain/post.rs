@@ -1,7 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-//Реализуйте метод new для создания нового поста.
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct Post {
     pub(crate) id: i64,
@@ -11,6 +10,15 @@ pub(crate) struct Post {
     pub(crate) created_at: DateTime<Utc>,
     pub(crate) updated_at: DateTime<Utc>,
 }
+
+#[derive(Debug, Serialize)]
+pub(crate) struct ListPosts{
+    pub(crate) posts: Option<Vec<Post>>,
+    pub(crate) total: usize,
+    pub(crate) limit: i64,
+    pub(crate) offset: i64,
+}
+
 
 #[derive(Debug, Deserialize, Clone)]
 pub(crate) struct CreatePost {

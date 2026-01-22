@@ -83,8 +83,8 @@ impl BlogRepository for InDbPostRepository {
         let row = sqlx::query(
             r#"
         UPDATE posts
-        set title=#3, content=#4, updated_at=NOW()
-        WHERE id=#1 and autor_id=#2
+        set title=$3, content=$4, updated_at=NOW()
+        WHERE id=$1 and author_id=$2
         RETURNING id, title, content, author_id, created_at, updated_at
         "#,
         )
@@ -111,8 +111,8 @@ impl BlogRepository for InDbPostRepository {
         }
         sqlx::query(
             r#"
-        DELETE posts
-        WHERE id = #1
+        DELETE FROM posts
+        WHERE id = $1
         "#,
         )
         .bind(post_id)
@@ -153,7 +153,7 @@ impl BlogRepository for InDbPostRepository {
             r#"
         SELECT id, title, content, author_id, created_at, updated_at
         FROM posts
-        WHERE id=#1 and author_id=#2
+        WHERE id=$1 and author_id=$2
         
         "#,
         )

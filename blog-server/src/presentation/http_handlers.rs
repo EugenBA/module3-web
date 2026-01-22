@@ -3,7 +3,7 @@ use crate::application::blog_service::BlogService;
 use crate::data::blog_repository::InDbPostRepository;
 use crate::data::user_repository::InDbUserRepository;
 use crate::domain::error::{BlogError};
-use crate::domain::post::{CreatePost, GetPaginationPost, UpdatePost};
+use crate::domain::post::{CreatePost, GetPaginationPost, ListPosts, UpdatePost};
 use crate::domain::user::{LoginUser, RegisterUser, TokenResponse};
 use crate::presentation::auth::AuthenticatedUser;
 use actix_web::{HttpMessage, HttpRequest, HttpResponse, Scope, delete, get, post, put, web, Responder};
@@ -91,7 +91,12 @@ get_posts(
         request_id = %request_id(&req),
         "get posts"
     );
-    Ok(HttpResponse::Accepted().json(posts))
+    Ok(HttpResponse::Accepted().json(ListPosts{
+        total: posts.len(),
+        posts: Some(posts),
+        limit: payload.limit,
+        offset: payload.offset
+    }))
 }
 
 //#[put("/posts/{id}")]
