@@ -7,3 +7,27 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
+wasm-bindgen="0.2"
+wasm-bindgen-futures = "0.4"
+gloo-net="0.6"
+js-sys="0.3"
+web-sys = { version = "0.3", features = [
+    "console",
+    "Window",
+    "Document",
+    "Element",
+    "HtmlElement",
+    "HtmlInputElement",
+    "HtmlTextAreaElement",
+    "HtmlButtonElement",
+    "Event",
+    "EventTarget",
+    "KeyboardEvent",
+    "InputEvent",
+    "SubmitEvent",
+    "Storage",
+] }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+chrono.workspace = true
