@@ -1,37 +1,24 @@
-// src/grpc_client.rs
-use crate::{BlogClientError, Result, models::*};
+
+use crate::blog::proto_blog_service_client::ProtoBlogServiceClient;
 use tonic::{transport::Channel, metadata::MetadataValue, Request};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-
-// Импортируем сгенерированные protobuf типы
-use crate::proto::{
-    blog_service_client::BlogServiceClient,
-    CreateUserRequest as ProtoCreateUserRequest,
-    LoginUserRequest as ProtoLoginUserRequest,
-    CreatePostRequest as ProtoCreatePostRequest,
-    UpdatePostRequest as ProtoUpdatePostRequest,
-    DeletePostRequest as ProtoDeletePostRequest,
-    GetPostRequest as ProtoGetPostRequest,
-    ListPostsRequest as ProtoListPostsRequest,
-    User as ProtoUser,
-    Post as ProtoPost,
-};
+use crate::models::models::{User, Post, AuthResponse};
+use crate::blog::*;
+use crate::error::BlogClientError;
 
 #[derive(Clone)]
 pub struct GrpcClient {
-    client: BlogServiceClient<Channel>,
+    client: ProtoBlogServiceClient<Channel>,
     token: Arc<RwLock<Option<String>>>,
 }
 
 impl GrpcClient {
-    pub async fn new(addr: &str) -> Result<Self> {
+    pub async fn new(addr: &str) -> Result<Self, BlogClientError> {
         let channel = Channel::from_shared(addr.to_string())?
             .connect()
             .await?;
-
-        let client = BlogServiceClient::new(channel);
-
+        let client = ProtoBlogServiceClient::new(channel);
         Ok(Self {
             client,
             token: Arc::new(RwLock::new(None)),
@@ -46,7 +33,7 @@ impl GrpcClient {
         self.token.read().await.clone()
     }
 
-    async fn create_request<T>(&self, message: T) -> Result<Request<T>> {
+    async fn create_request<T>(&self, message: T) -> Result<Request<T>, BlogClientError> {
         let mut request = Request::new(message);
 
         if let Some(token) = self.get_token().await {
@@ -88,28 +75,29 @@ impl GrpcClient {
         }
     }
 
-    pub async fn register(&self, username: &str, email: &str, password: &str) -> Result<AuthResponse> {
-        let request = ProtoCreateUserRequest {
+    pub async fn register(&self, username: &str, email: &str, password: &str) -> Result<AuthResponse, BlogClientError> {
+        let request = RegisterUserRequest {
             username: username.to_string(),
             email: email.to_string(),
             password: password.to_string(),
         };
 
         let mut client = self.client.clone();
-        let response = client.create_user(request).await?;
+        let response = client.register_user(request).await?;
         let response = response.into_inner();
 
         let token = response.token;
-        let user = response.user.unwrap();
+        let username = response.username;
 
         Ok(AuthResponse {
-            user: Self::from_proto_user(user),
+            username,
             token,
         })
     }
 
-    pub async fn login(&self, email: &str, password: &str) -> Result<AuthResponse> {
-        let request = ProtoLoginUserRequest {
+    pub async fn login(&self, username: &str, email: &str, password: &str) -> Result<AuthResponse, BlogClientError> {
+        let request = LoginUserRequest {
+            username: username.to_string(),
             email: email.to_string(),
             password: password.to_string(),
         };
@@ -119,16 +107,16 @@ impl GrpcClient {
         let response = response.into_inner();
 
         let token = response.token;
-        let user = response.user.unwrap();
+        let username = response.username;
 
         Ok(AuthResponse {
-            user: Self::from_proto_user(user),
+            username,
             token,
         })
     }
 
-    pub async fn create_post(&self, title: &str, content: &str) -> Result<Post> {
-        let request = ProtoCreatePostRequest {
+    pub async fn create_post(&self, title: &str, content: &str) -> Result<Post, BlogClientError> {
+        let request = CreatePostRequest {
             title: title.to_string(),
             content: content.to_string(),
         };
@@ -141,9 +129,9 @@ impl GrpcClient {
         Ok(Self::from_proto_post(response.post.unwrap()))
     }
 
-    pub async fn get_post(&self, id: &str) -> Result<Post> {
-        let request = ProtoGetPostRequest {
-            id: id.to_string(),
+    pub async fn get_post(&self, id: i64) -> Result<Post, BlogClientError> {
+        let request = GetPostRequest {
+            id,
         };
 
         let mut client = self.client.clone();
@@ -153,9 +141,9 @@ impl GrpcClient {
         Ok(Self::from_proto_post(response.post.unwrap()))
     }
 
-    pub async fn update_post(&self, id: &str, title: &str, content: &str) -> Result<Post> {
-        let request = ProtoUpdatePostRequest {
-            id: id.to_string(),
+    pub async fn update_post(&self, id: i64, title: &str, content: &str) -> Result<Post, BlogClientError> {
+        let request = UpdatePostRequest {
+            id,
             title: title.to_string(),
             content: content.to_string(),
         };
@@ -168,9 +156,9 @@ impl GrpcClient {
         Ok(Self::from_proto_post(response.post.unwrap()))
     }
 
-    pub async fn delete_post(&self, id: &str) -> Result<()> {
-        let request = ProtoDeletePostRequest {
-            id: id.to_string(),
+    pub async fn delete_post(&self, id: i64) -> Result<(), BlogClientError> {
+        let request = DeletePostRequest {
+            id
         };
 
         let mut client = self.client.clone();
@@ -180,14 +168,14 @@ impl GrpcClient {
         Ok(())
     }
 
-    pub async fn list_posts(&self, limit: Option<u32>, offset: Option<u32>) -> Result<Vec<Post>> {
-        let request = ProtoListPostsRequest {
-            offset: offset.map(|o| o as i32),
-            limit: limit.map(|l| l as i32),
+    pub async fn list_posts(&self, limit: i64, offset: i64) -> Result<Vec<Post>, BlogClientError> {
+        let request = GetPostsRequest {
+            offset: Some(offset),
+            limit: Some(limit),
         };
 
         let mut client = self.client.clone();
-        let response = client.list_posts(request).await?;
+        let response = client.get_posts(request).await?;
         let response = response.into_inner();
 
         let posts = response.posts

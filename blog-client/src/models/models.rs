@@ -1,10 +1,10 @@
-// src/models.rs
+
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
-    pub id: String,
+    pub id: i64,
     pub username: String,
     pub email: String,
     pub created_at: DateTime<Utc>,
@@ -12,17 +12,17 @@ pub struct User {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Post {
-    pub id: String,
+    pub id: i64,
     pub title: String,
     pub content: String,
-    pub author_id: String,
+    pub author_id: i64,
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthResponse {
-    pub user: User,
+    pub username: String,
     pub token: String,
 }
 

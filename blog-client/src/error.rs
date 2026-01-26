@@ -1,6 +1,7 @@
-// src/error.rs
+
 use thiserror::Error;
 use reqwest::StatusCode;
+use tonic::codegen::http::uri::InvalidUri;
 use tonic::Status;
 
 #[derive(Error, Debug)]
@@ -12,7 +13,10 @@ pub enum BlogClientError {
     GrpcTransport(#[from] tonic::transport::Error),
 
     #[error("gRPC status error: {0}")]
-    GrpcStatus(#[from] tonic::Status),
+    GrpcStatus(#[from] Status),
+
+    #[error("gRPC status error: {0}")]
+    GrpcUriError(#[from] InvalidUri),
 
     #[error("Resource not found: {0}")]
     NotFound(String),
