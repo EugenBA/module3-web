@@ -1,24 +1,24 @@
-use std::net::{IpAddr, SocketAddr};
 use crate::application::auth_service::AuthService;
 use crate::application::blog_service::BlogService;
+use crate::blog::proto_blog_service_server::ProtoBlogServiceServer;
 use crate::data::blog_repository::InDbPostRepository;
 use crate::data::user_repository::InDbUserRepository;
-use crate::infrastructure::config::{AppConfig};
+use crate::infrastructure::config::AppConfig;
 use crate::infrastructure::database;
 use crate::infrastructure::jwt::JwtService;
 use crate::infrastructure::logging::init_logging;
+use crate::presentation::grpc_service::BlogGrpcService;
 use crate::presentation::http_handlers;
 use crate::presentation::middleware::JwtAuthMiddleware;
 use actix_cors::Cors;
 use actix_web::middleware::{DefaultHeaders, Logger};
 use actix_web::{App, HttpServer, web};
-use sqlx::postgres::PgPoolOptions;
-use std::sync::Arc;
 use anyhow::Error;
+use sqlx::postgres::PgPoolOptions;
+use std::net::{IpAddr, SocketAddr};
+use std::sync::Arc;
 use tokio::task::JoinHandle;
 use tracing::{error, info};
-use crate::blog::proto_blog_service_server::ProtoBlogServiceServer;
-use crate::presentation::grpc_service::BlogGrpcService;
 
 pub(crate) async fn start_server() -> Result<(), Error> {
     init_logging();
@@ -42,10 +42,14 @@ pub(crate) async fn start_server() -> Result<(), Error> {
     );
     let blog_service = BlogService::new(Arc::clone(&blog_repo));
     let config_data = config.clone();
-    let http_handle = start_http_server(config_data.clone(),
-                                       blog_service.clone(), auth_service.clone()).await?;
-    let grpc_handle = start_grpc_server(config_data,
-                                        blog_service.clone(), auth_service.clone()).await?;
+    let http_handle = start_http_server(
+        config_data.clone(),
+        blog_service.clone(),
+        auth_service.clone(),
+    )
+    .await?;
+    let grpc_handle =
+        start_grpc_server(config_data, blog_service.clone(), auth_service.clone()).await?;
     tokio::select! {
         grpc_result = grpc_handle => {
             error!("gRPC server stopped: {:?}", grpc_result);
@@ -63,9 +67,11 @@ pub(crate) async fn start_server() -> Result<(), Error> {
     Ok(())
 }
 
-async fn start_http_server(config_data: AppConfig,
-                           blog_service: BlogService<InDbPostRepository>,
-                           auth_service: AuthService<InDbUserRepository>) -> Result<JoinHandle<()>, Error> {
+async fn start_http_server(
+    config_data: AppConfig,
+    blog_service: BlogService<InDbPostRepository>,
+    auth_service: AuthService<InDbUserRepository>,
+) -> Result<JoinHandle<()>, Error> {
     let config = config_data.clone();
     let http_server = HttpServer::new(move || {
         let cors = build_cors(&config);
@@ -88,7 +94,7 @@ async fn start_http_server(config_data: AppConfig,
                     .service(
                         web::scope("/auth")
                             .route("/register", web::post().to(http_handlers::register))
-                            .route("/login", web::post().to(http_handlers::login))
+                            .route("/login", web::post().to(http_handlers::login)),
                     )
                     // Посты: публичные GET, защищенные другие методы
                     .service(
@@ -102,13 +108,13 @@ async fn start_http_server(config_data: AppConfig,
                                     .wrap(JwtAuthMiddleware::new(auth_service.keys().clone()))
                                     .route("", web::post().to(http_handlers::create_post))
                                     .route("/{id}", web::put().to(http_handlers::update_post))
-                                    .route("/{id}", web::delete().to(http_handlers::delete_post))
-                            )
-                    )
+                                    .route("/{id}", web::delete().to(http_handlers::delete_post)),
+                            ),
+                    ),
             )
     })
-        .bind((config_data.host.as_str(), config_data.port))?
-        .run();
+    .bind((config_data.host.as_str(), config_data.port))?
+    .run();
     info!("HTTP server start");
     let handle = tokio::spawn(async move {
         http_server.await.expect("Can't start http server");
@@ -116,16 +122,15 @@ async fn start_http_server(config_data: AppConfig,
     Ok(handle)
 }
 
-async fn start_grpc_server(config_data: AppConfig,
-                           blog_service: BlogService<InDbPostRepository>,
-                           auth_service: AuthService<InDbUserRepository>) -> Result<JoinHandle<()>, Error> {
-    let grpc_service = BlogGrpcService::new(
-        blog_service,
-        auth_service
-    );
+async fn start_grpc_server(
+    config_data: AppConfig,
+    blog_service: BlogService<InDbPostRepository>,
+    auth_service: AuthService<InDbUserRepository>,
+) -> Result<JoinHandle<()>, Error> {
+    let grpc_service = BlogGrpcService::new(blog_service, auth_service);
 
     let grpc_service_server = ProtoBlogServiceServer::new(grpc_service);
-    let ip_addr : IpAddr = config_data.host.parse()?;
+    let ip_addr: IpAddr = config_data.host.parse()?;
     let socket_add = SocketAddr::new(ip_addr, config_data.grpc_port);
     let server = tonic::transport::Server::builder()
         .add_service(grpc_service_server)

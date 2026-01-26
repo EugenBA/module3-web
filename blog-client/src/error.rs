@@ -1,8 +1,7 @@
-
-use thiserror::Error;
 use reqwest::StatusCode;
-use tonic::codegen::http::uri::InvalidUri;
+use thiserror::Error;
 use tonic::Status;
+use tonic::codegen::http::uri::InvalidUri;
 
 #[derive(Error, Debug)]
 pub enum BlogClientError {

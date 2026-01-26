@@ -1,23 +1,20 @@
-
 use crate::blog::proto_blog_service_client::ProtoBlogServiceClient;
-use tonic::{transport::Channel, metadata::MetadataValue, Request};
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use crate::models::models::{User, Post, AuthResponse};
 use crate::blog::*;
 use crate::error::BlogClientError;
+use crate::models::models::{AuthResponse, Post, User};
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use tonic::{Request, metadata::MetadataValue, transport::Channel};
 
 #[derive(Clone)]
-pub struct GrpcClient {
+pub(crate) struct GrpcClient {
     client: ProtoBlogServiceClient<Channel>,
     token: Arc<RwLock<Option<String>>>,
 }
 
 impl GrpcClient {
-    pub async fn new(addr: &str) -> Result<Self, BlogClientError> {
-        let channel = Channel::from_shared(addr.to_string())?
-            .connect()
-            .await?;
+    pub(crate) async fn new(addr: &str) -> Result<Self, BlogClientError> {
+        let channel = Channel::from_shared(addr.to_string())?.connect().await?;
         let client = ProtoBlogServiceClient::new(channel);
         Ok(Self {
             client,
@@ -25,7 +22,7 @@ impl GrpcClient {
         })
     }
 
-    pub async fn set_token(&self, token: Option<String>) {
+    pub(crate) async fn set_token(&self, token: Option<String>) {
         *self.token.write().await = token;
     }
 
@@ -54,7 +51,8 @@ impl GrpcClient {
             created_at: chrono::DateTime::from_timestamp(
                 user.created_at.unwrap().seconds,
                 user.created_at.unwrap().nanos as u32,
-            ).unwrap_or_else(|| chrono::Utc::now()),
+            )
+            .unwrap_or_else(|| chrono::Utc::now()),
         }
     }
 
@@ -67,7 +65,8 @@ impl GrpcClient {
             created_at: chrono::DateTime::from_timestamp(
                 post.created_at.unwrap().seconds,
                 post.created_at.unwrap().nanos as u32,
-            ).unwrap_or_else(|| chrono::Utc::now()),
+            )
+            .unwrap_or_else(|| chrono::Utc::now()),
             updated_at: post.updated_at.map(|ts| {
                 chrono::DateTime::from_timestamp(ts.seconds, ts.nanos as u32)
                     .unwrap_or_else(|| chrono::Utc::now())
@@ -75,7 +74,12 @@ impl GrpcClient {
         }
     }
 
-    pub async fn register(&self, username: &str, email: &str, password: &str) -> Result<AuthResponse, BlogClientError> {
+    pub(crate) async fn register(
+        &self,
+        username: &str,
+        email: &str,
+        password: &str,
+    ) -> Result<AuthResponse, BlogClientError> {
         let request = RegisterUserRequest {
             username: username.to_string(),
             email: email.to_string(),
@@ -89,13 +93,15 @@ impl GrpcClient {
         let token = response.token;
         let username = response.username;
 
-        Ok(AuthResponse {
-            username,
-            token,
-        })
+        Ok(AuthResponse { username, token })
     }
 
-    pub async fn login(&self, username: &str, email: &str, password: &str) -> Result<AuthResponse, BlogClientError> {
+    pub(crate) async fn login(
+        &self,
+        username: &str,
+        email: &str,
+        password: &str,
+    ) -> Result<AuthResponse, BlogClientError> {
         let request = LoginUserRequest {
             username: username.to_string(),
             email: email.to_string(),
@@ -109,13 +115,14 @@ impl GrpcClient {
         let token = response.token;
         let username = response.username;
 
-        Ok(AuthResponse {
-            username,
-            token,
-        })
+        Ok(AuthResponse { username, token })
     }
 
-    pub async fn create_post(&self, title: &str, content: &str) -> Result<Post, BlogClientError> {
+    pub(crate) async fn create_post(
+        &self,
+        title: &str,
+        content: &str,
+    ) -> Result<Post, BlogClientError> {
         let request = CreatePostRequest {
             title: title.to_string(),
             content: content.to_string(),
@@ -129,10 +136,8 @@ impl GrpcClient {
         Ok(Self::from_proto_post(response.post.unwrap()))
     }
 
-    pub async fn get_post(&self, id: i64) -> Result<Post, BlogClientError> {
-        let request = GetPostRequest {
-            id,
-        };
+    pub(crate) async fn get_post(&self, id: i64) -> Result<Post, BlogClientError> {
+        let request = GetPostRequest { id };
 
         let mut client = self.client.clone();
         let response = client.get_post(request).await?;
@@ -141,7 +146,12 @@ impl GrpcClient {
         Ok(Self::from_proto_post(response.post.unwrap()))
     }
 
-    pub async fn update_post(&self, id: i64, title: &str, content: &str) -> Result<Post, BlogClientError> {
+    pub(crate) async fn update_post(
+        &self,
+        id: i64,
+        title: &str,
+        content: &str,
+    ) -> Result<Post, BlogClientError> {
         let request = UpdatePostRequest {
             id,
             title: title.to_string(),
@@ -156,10 +166,8 @@ impl GrpcClient {
         Ok(Self::from_proto_post(response.post.unwrap()))
     }
 
-    pub async fn delete_post(&self, id: i64) -> Result<(), BlogClientError> {
-        let request = DeletePostRequest {
-            id
-        };
+    pub(crate) async fn delete_post(&self, id: i64) -> Result<(), BlogClientError> {
+        let request = DeletePostRequest { id };
 
         let mut client = self.client.clone();
         let request = self.create_request(request).await?;
@@ -168,17 +176,19 @@ impl GrpcClient {
         Ok(())
     }
 
-    pub async fn list_posts(&self, limit: i64, offset: i64) -> Result<Vec<Post>, BlogClientError> {
-        let request = GetPostsRequest {
-            offset: Some(offset),
-            limit: Some(limit),
-        };
+    pub(crate) async fn get_posts(
+        &self,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<Post>, BlogClientError> {
+        let request = GetPostsRequest { offset, limit };
 
         let mut client = self.client.clone();
         let response = client.get_posts(request).await?;
         let response = response.into_inner();
 
-        let posts = response.posts
+        let posts = response
+            .posts
             .into_iter()
             .map(Self::from_proto_post)
             .collect();

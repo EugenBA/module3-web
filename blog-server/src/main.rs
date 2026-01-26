@@ -9,7 +9,6 @@ pub mod blog {
     tonic::include_proto!("blog");
 }
 
-
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenvy::dotenv().ok();

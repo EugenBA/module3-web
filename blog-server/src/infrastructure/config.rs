@@ -8,7 +8,6 @@ pub(crate) struct AppConfig {
     pub(crate) grpc_port: u16,
     pub(crate) secret: String,
     pub(crate) origins: Vec<String>,
-
 }
 
 impl AppConfig {
@@ -34,7 +33,7 @@ impl AppConfig {
             port,
             grpc_port,
             secret,
-            origins
+            origins,
         })
     }
 }

@@ -1,6 +1,5 @@
-
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
@@ -27,7 +26,7 @@ pub struct AuthResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateUserRequest {
+pub struct RegisterUserRequest {
     pub username: String,
     pub email: String,
     pub password: String,
@@ -35,6 +34,7 @@ pub struct CreateUserRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LoginRequest {
+    pub username: String,
     pub email: String,
     pub password: String,
 }
@@ -47,7 +47,7 @@ pub struct CreatePostRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdatePostRequest {
-    pub id: String,
+    pub id: i64,
     pub title: String,
     pub content: String,
 }
@@ -56,13 +56,13 @@ pub struct UpdatePostRequest {
 pub struct ListPostsResponse {
     pub posts: Vec<Post>,
     pub total: Option<u64>,
-    pub offset: u32,
-    pub limit: u32,
+    pub offset: i64,
+    pub limit: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ListPostsRequest {
-    pub offset: Option<u32>,
-    pub limit: Option<u32>,
+    pub offset: Option<i64>,
+    pub limit: Option<i64>,
     pub author_id: Option<String>,
 }

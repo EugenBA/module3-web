@@ -1,32 +1,26 @@
-
 use crate::blog::proto_blog_service_server::ProtoBlogService;
-use crate::domain::post::Post;
-use tonic::{Request, Response, Status, metadata::MetadataMap};
-use tracing::{info, warn};
-use crate::{
-    application::{
-        blog_service::BlogService,
-        auth_service::AuthService,
-    },
-    domain::{user::{RegisterUser,LoginUser},
-             post::{CreatePost, UpdatePost},
-        error::BlogError,
-    },
-};
 use crate::blog::*;
 use crate::data::blog_repository::BlogRepository;
 use crate::data::user_repository::UserRepository;
+use crate::domain::post::Post;
+use crate::{
+    application::{auth_service::AuthService, blog_service::BlogService},
+    domain::{
+        error::BlogError,
+        post::{CreatePost, UpdatePost},
+        user::{LoginUser, RegisterUser},
+    },
+};
+use tonic::{Request, Response, Status, metadata::MetadataMap};
+use tracing::{info, warn};
 
 pub(crate) struct BlogGrpcService<R: BlogRepository + 'static, S: UserRepository + 'static> {
     blog_service: BlogService<R>,
     auth_service: AuthService<S>,
 }
 
-impl<R:BlogRepository, S:UserRepository> BlogGrpcService<R, S> {
-    pub fn new(
-        blog_service: BlogService<R>,
-        auth_service: AuthService<S>,
-    ) -> Self {
+impl<R: BlogRepository, S: UserRepository> BlogGrpcService<R, S> {
+    pub fn new(blog_service: BlogService<R>, auth_service: AuthService<S>) -> Self {
         Self {
             blog_service,
             auth_service,
@@ -48,19 +42,19 @@ impl<R:BlogRepository, S:UserRepository> BlogGrpcService<R, S> {
 
         if !auth_header.starts_with("Bearer ") {
             warn!("Invalid authorization header format - missing Bearer prefix");
-            return Err(Status::unauthenticated("Invalid authorization header format"));
+            return Err(Status::unauthenticated(
+                "Invalid authorization header format",
+            ));
         }
 
         Ok(auth_header[7..].to_string())
     }
 
     fn get_user_id_from_token(&self, token: &str) -> Result<i64, Status> {
-        let claims = self.auth_service.keys()
-            .verify_token(token)
-            .map_err(|e| {
-                warn!("Invalid JWT token: {}", e);
-                Status::unauthenticated("Invalid token")
-            })?;
+        let claims = self.auth_service.keys().verify_token(token).map_err(|e| {
+            warn!("Invalid JWT token: {}", e);
+            Status::unauthenticated("Invalid token")
+        })?;
 
         Ok(claims.user_id)
     }
@@ -101,7 +95,7 @@ impl<R:BlogRepository, S:UserRepository> BlogGrpcService<R, S> {
 }
 
 #[tonic::async_trait]
-impl<R:BlogRepository, S:UserRepository> ProtoBlogService for BlogGrpcService<R, S>{
+impl<R: BlogRepository, S: UserRepository> ProtoBlogService for BlogGrpcService<R, S> {
     async fn register_user(
         &self,
         request: Request<RegisterUserRequest>,
@@ -119,7 +113,7 @@ impl<R:BlogRepository, S:UserRepository> ProtoBlogService for BlogGrpcService<R,
             Ok(token) => {
                 let response = TokenResponse {
                     token,
-                    username: req.username
+                    username: req.username,
                 };
                 Ok(Response::new(response))
             }
@@ -171,8 +165,11 @@ impl<R:BlogRepository, S:UserRepository> ProtoBlogService for BlogGrpcService<R,
             content: req.content,
         };
 
-        match self.blog_service.create_post(create_post.title,
-                                            create_post.content, user_id).await {
+        match self
+            .blog_service
+            .create_post(create_post.title, create_post.content, user_id)
+            .await
+        {
             Ok(post) => {
                 let response = CreatePostResponse {
                     post: Some(self.to_proto_post(post)),
@@ -200,7 +197,11 @@ impl<R:BlogRepository, S:UserRepository> ProtoBlogService for BlogGrpcService<R,
             content: req.content,
         };
 
-        match self.blog_service.update_post(req.id, user_id, update_post).await {
+        match self
+            .blog_service
+            .update_post(req.id, user_id, update_post)
+            .await
+        {
             Ok(post) => {
                 let response = UpdatePostResponse {
                     post: Some(self.to_proto_post(post)),
@@ -245,13 +246,12 @@ impl<R:BlogRepository, S:UserRepository> ProtoBlogService for BlogGrpcService<R,
 
         match self.blog_service.get_post(req.id).await {
             Ok(post) => {
-                if let Some(post) = post{
+                if let Some(post) = post {
                     let response = GetPostResponse {
                         post: Some(self.to_proto_post(post)),
                     };
                     Ok(Response::new(response))
-                }
-                else {
+                } else {
                     warn!("GetPost error: empty posts");
                     Err(self.map_app_error_to_status(BlogError::PostNotFound))
                 }

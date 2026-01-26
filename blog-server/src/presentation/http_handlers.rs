@@ -2,11 +2,13 @@ use crate::application::auth_service::AuthService;
 use crate::application::blog_service::BlogService;
 use crate::data::blog_repository::InDbPostRepository;
 use crate::data::user_repository::InDbUserRepository;
-use crate::domain::error::{BlogError};
+use crate::domain::error::BlogError;
 use crate::domain::post::{CreatePost, GetPaginationPost, ListPosts, UpdatePost};
 use crate::domain::user::{LoginUser, RegisterUser, TokenResponse};
 use crate::presentation::auth::AuthenticatedUser;
-use actix_web::{HttpMessage, HttpRequest, HttpResponse, Scope, delete, get, post, put, web, Responder};
+use actix_web::{
+    HttpMessage, HttpRequest, HttpResponse, Responder, Scope, delete, get, post, put, web,
+};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use tracing::info;
@@ -80,8 +82,7 @@ pub(crate) async fn get_post(
     Ok(HttpResponse::Accepted().json(post))
 }
 
-pub(crate) async fn
-get_posts(
+pub(crate) async fn get_posts(
     req: HttpRequest,
     blog: web::Data<BlogService<InDbPostRepository>>,
     payload: web::Query<GetPaginationPost>,
@@ -91,11 +92,11 @@ get_posts(
         request_id = %request_id(&req),
         "get posts"
     );
-    Ok(HttpResponse::Accepted().json(ListPosts{
+    Ok(HttpResponse::Accepted().json(ListPosts {
         total: posts.len(),
         posts: Some(posts),
         limit: payload.limit,
-        offset: payload.offset
+        offset: payload.offset,
     }))
 }
 

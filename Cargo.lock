@@ -462,6 +462,7 @@ dependencies = [
  "blog-client",
  "chrono",
  "clap",
+ "dotenvy",
 ]
 
 [[package]]

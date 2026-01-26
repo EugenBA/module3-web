@@ -12,13 +12,12 @@ pub(crate) struct Post {
 }
 
 #[derive(Debug, Serialize)]
-pub(crate) struct ListPosts{
+pub(crate) struct ListPosts {
     pub(crate) posts: Option<Vec<Post>>,
     pub(crate) total: usize,
     pub(crate) limit: i64,
     pub(crate) offset: i64,
 }
-
 
 #[derive(Debug, Deserialize, Clone)]
 pub(crate) struct CreatePost {
