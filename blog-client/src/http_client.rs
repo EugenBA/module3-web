@@ -137,7 +137,7 @@ impl HttpClient {
         Ok(())
     }
 
-    pub async fn list_posts(&self, limit: Option<u32>, offset: Option<u32>) -> Result<Vec<Post>, BlogClientError> {
+    pub async fn get_posts(&self, limit: Option<i64>, offset: Option<i64>) -> Result<Vec<Post>, BlogClientError> {
         let mut url = "/api/posts".to_string();
         let mut params = vec![];
 
