@@ -59,6 +59,6 @@ pub(crate) struct Cli {
 
     /// Подкоманда для выполнения
     #[command(subcommand)]
-    command: Commands,
+    pub(crate) command: Commands,
 }
 

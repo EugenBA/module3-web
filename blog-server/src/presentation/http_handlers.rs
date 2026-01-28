@@ -22,22 +22,6 @@ pub struct HealthResponse {
     pub timestamp: DateTime<Utc>,
 }
 
-/*pub(crate) fn protected_scope() -> Scope {
-    web::scope("")
-        .route("/posts", web::post().to(create_post))
-        .route("/posts/{id}", web::put().to(update_post))
-        .route("/posts/{id}", web::delete().to(delete_post))
-}
-
-pub(crate) fn public_scope() -> Scope {
-    web::scope("")
-        .route("/health", web::get().to(health))
-        .route("/posts", web::get().to(get_posts))
-        .route("/posts/{id}", web::get().to(get_post))
-        .service(register)
-        .service(login)
-}*/
-
 pub(crate) async fn health() -> impl Responder {
     HttpResponse::Ok().json(HealthResponse {
         status: "ok",
@@ -45,7 +29,6 @@ pub(crate) async fn health() -> impl Responder {
     })
 }
 
-//#[post("/posts")]
 pub(crate) async fn create_post(
     req: HttpRequest,
     user: AuthenticatedUser,
@@ -65,7 +48,6 @@ pub(crate) async fn create_post(
     Ok(HttpResponse::Created().json(post))
 }
 
-//#[get("/api/post/{id}")]
 pub(crate) async fn get_post(
     req: HttpRequest,
     blog: web::Data<BlogService<InDbPostRepository>>,

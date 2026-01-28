@@ -99,12 +99,10 @@ impl GrpcClient {
     pub(crate) async fn login(
         &self,
         username: &str,
-        email: &str,
         password: &str,
     ) -> Result<AuthResponse, BlogClientError> {
         let request = LoginUserRequest {
             username: username.to_string(),
-            email: email.to_string(),
             password: password.to_string(),
         };
 

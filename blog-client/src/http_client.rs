@@ -89,12 +89,10 @@ impl HttpClient {
     pub(crate) async fn login(
         &self,
         username: &str,
-        email: &str,
         password: &str,
     ) -> Result<AuthResponse, BlogClientError> {
         let body = json!(LoginRequest {
             username: username.to_string(),
-            email: email.to_string(),
             password: password.to_string(),
         });
 

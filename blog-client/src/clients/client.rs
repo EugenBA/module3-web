@@ -1,3 +1,5 @@
+use std::fs;
+use std::path::Path;
 use crate::models::models::{AuthResponse, Post, User};
 use crate::{error::BlogClientError, grpc_client::GrpcClient, http_client::HttpClient};
 use std::sync::Arc;
@@ -406,7 +408,6 @@ impl BlogClient {
     pub async fn login(
         &self,
         username: &str,
-        email: &str,
         password: &str,
     ) -> Result<AuthResponse, BlogClientError> {
         match self {
@@ -414,7 +415,7 @@ impl BlogClient {
                 http_client: Some(client),
                 ..
             } => {
-                let response = client.login(username, email, password).await?;
+                let response = client.login(username, password).await?;
                 self.set_token(Some(response.token.clone())).await;
                 Ok(response)
             }
@@ -422,7 +423,7 @@ impl BlogClient {
                 grpc_client: Some(client),
                 ..
             } => {
-                let response = client.login(username, email, password).await?;
+                let response = client.login(username, password).await?;
                 self.set_token(Some(response.token.clone())).await;
                 Ok(response)
             }
@@ -690,6 +691,22 @@ impl BlogClient {
     pub fn transport(&self) -> &Transport {
         &self.transport
     }
+
+    pub async fn load_token(&self) -> Result<(), BlogClientError> {
+        let token_file = ".blog_token";
+        if Path::new(token_file).exists() {
+            let token=fs::read_to_string(token_file).ok();
+            self.set_token(token).await;
+        } else {
+            return Err(BlogClientError::Unauthorized("Not load token".to_string()));
+        }
+        Ok(())
+    }
+    pub fn save_token(&self, token: &str) -> Result<(), BlogClientError> {
+        fs::write(".blog_token", token)?;
+        Ok(())
+    }
+
 }
 
 /// ```rust
