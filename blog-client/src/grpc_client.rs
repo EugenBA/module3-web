@@ -1,8 +1,9 @@
 use crate::blog::proto_blog_service_client::ProtoBlogServiceClient;
 use crate::blog::*;
 use crate::error::BlogClientError;
-use crate::models::models::{AuthResponse, Post, User};
+use crate::models::models::{Response, Post, User};
 use std::sync::Arc;
+use std::vec;
 use tokio::sync::RwLock;
 use tonic::{Request, metadata::MetadataValue, transport::Channel};
 
@@ -79,7 +80,7 @@ impl GrpcClient {
         username: &str,
         email: &str,
         password: &str,
-    ) -> Result<AuthResponse, BlogClientError> {
+    ) -> Result<Response, BlogClientError> {
         let request = RegisterUserRequest {
             username: username.to_string(),
             email: email.to_string(),
@@ -93,14 +94,14 @@ impl GrpcClient {
         let token = response.token;
         let username = response.username;
 
-        Ok(AuthResponse { username, token })
+        Ok(Response {post: None, username, token })
     }
 
     pub(crate) async fn login(
         &self,
         username: &str,
         password: &str,
-    ) -> Result<AuthResponse, BlogClientError> {
+    ) -> Result<Response, BlogClientError> {
         let request = LoginUserRequest {
             username: username.to_string(),
             password: password.to_string(),
@@ -113,14 +114,14 @@ impl GrpcClient {
         let token = response.token;
         let username = response.username;
 
-        Ok(AuthResponse { username, token })
+        Ok(Response { post: None, username, token })
     }
 
     pub(crate) async fn create_post(
         &self,
         title: &str,
         content: &str,
-    ) -> Result<Post, BlogClientError> {
+    ) -> Result<Response, BlogClientError> {
         let request = CreatePostRequest {
             title: title.to_string(),
             content: content.to_string(),
@@ -130,18 +131,26 @@ impl GrpcClient {
         let request = self.create_request(request).await?;
         let response = client.create_post(request).await?;
         let response = response.into_inner();
-
-        Ok(Self::from_proto_post(response.post.unwrap()))
+        if let Some(post) = response.post {
+            Ok(Response { post: Some(vec![Self::from_proto_post(post)]), username: None, token: None })
+        }
+        else {
+            Err(BlogClientError::CreatePostError("No post returned".to_string()))
+        }
     }
 
-    pub(crate) async fn get_post(&self, id: i64) -> Result<Post, BlogClientError> {
+    pub(crate) async fn get_post(&self, id: i64) -> Result<Response, BlogClientError> {
         let request = GetPostRequest { id };
 
         let mut client = self.client.clone();
         let response = client.get_post(request).await?;
         let response = response.into_inner();
-
-        Ok(Self::from_proto_post(response.post.unwrap()))
+        if let Some(post) = response.post {
+            Ok(Response { post: Some(vec![Self::from_proto_post(post)]), username: None, token: None })
+        }
+        else {
+            Err(BlogClientError::NotFound("No post returned".to_string()))
+        }
     }
 
     pub(crate) async fn update_post(
@@ -160,8 +169,12 @@ impl GrpcClient {
         let request = self.create_request(request).await?;
         let response = client.update_post(request).await?;
         let response = response.into_inner();
-
-        Ok(Self::from_proto_post(response.post.unwrap()))
+        if let Some(post) = response.post {
+            Ok(Response { post: Some(vec![Self::from_proto_post(post)]), username: None, token: None })
+        }
+        else {
+            Err(BlogClientError::NotFound("No post returned".to_string()))
+        }
     }
 
     pub(crate) async fn delete_post(&self, id: i64) -> Result<(), BlogClientError> {

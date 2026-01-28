@@ -1,3 +1,4 @@
+use std::error::Error;
 use clap::Parser;
 use blog_client::clients::client::{BlogClient, Transport};
 use blog_client::error::BlogClientError;
@@ -8,7 +9,7 @@ mod error;
 
 
 #[tokio::main]
-async fn main() {
+async fn main() ->Result<(), Box<dyn Error>>{
     let cli = Cli::parse();
     // Определяем адрес сервера
     let server_address = if cli.grpc {
@@ -31,30 +32,29 @@ async fn main() {
     let token = client.load_token();
 
     // Выполняем команду
-    let result = match &cli.command {
+    match &cli.command {
         Commands::Register { username, email, password } => {
             let result = client.register(username, email, password).await;
             // Для Register сохраняем токен, если он был получен
-            if let Ok(ref token) = result {
-                if client.save_token(&token.token).is_ok() {
-                    println!("Token saved to .blog_token");
+            if let Ok(ref result) = result {
+                if client.save_token(&result.token).is_ok() {
+                    println!("User regiser, token saved to .blog_token");
                 }
             }
-            result
         }
         Commands::Login { username, password } => {
             let result = client.login(username, password).await;
             // Для Login сохраняем токен
-            if let Ok(ref token) = result {
-                if client.save_token(&token.token).is_ok() {
-                    println!("Token saved to .blog_token");
+            if let Ok(ref result) = result {
+                if client.save_token(&result.token).is_ok() {
+                    println!("User: {}, login, Token saved to .blog_token", result.username);
                 }
             }
-            result
         }
         Commands::Create { title, content } => {
             if let Some(_) = client.get_token().await {
-                client.create_post(title, content).await
+                let resul = client.create_post(title, content).await;
+                
             } else {
                 Err("Token required. Please login first.".to_string())
             }
@@ -80,11 +80,5 @@ async fn main() {
             client.list_posts(*limit, *offset, token.as_deref()).await
         }
     };
-
-    // Выводим результат
-    match result {
-        Ok(response) => println!("Success: {}", response),
-        Err(error) => eprintln!("Error: {}", error),
-    }
 }
 

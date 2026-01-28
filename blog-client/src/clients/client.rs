@@ -1,6 +1,6 @@
 use std::fs;
 use std::path::Path;
-use crate::models::models::{AuthResponse, Post, User};
+use crate::models::models::{Response, Post};
 use crate::{error::BlogClientError, grpc_client::GrpcClient, http_client::HttpClient};
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -333,7 +333,7 @@ impl BlogClient {
         username: &str,
         email: &str,
         password: &str,
-    ) -> Result<AuthResponse, BlogClientError> {
+    ) -> Result<Response, BlogClientError> {
         match self {
             Self {
                 http_client: Some(client),
@@ -409,7 +409,7 @@ impl BlogClient {
         &self,
         username: &str,
         password: &str,
-    ) -> Result<AuthResponse, BlogClientError> {
+    ) -> Result<Response, BlogClientError> {
         match self {
             Self {
                 http_client: Some(client),

@@ -46,6 +46,9 @@ pub enum BlogClientError {
 
     #[error("Unknown error: {0}")]
     Unknown(String),
+    
+    #[error("Create post error: {0}")]
+    CreatePostError(String),
 }
 
 impl BlogClientError {
