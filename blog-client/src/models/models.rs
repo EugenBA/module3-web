@@ -50,8 +50,8 @@ impl From<ProtoPost> for Post{
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Response {
     pub post: Option<Vec<Post>>,
-    pub username: Option<String>,
-    pub token: Option<String>,
+    pub username: String,
+    pub token: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

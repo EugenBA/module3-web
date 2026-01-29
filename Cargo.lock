@@ -515,7 +515,6 @@ dependencies = [
 name = "blog-wasm"
 version = "0.1.0"
 dependencies = [
- "blog-client",
  "chrono",
  "gloo-net",
  "js-sys",

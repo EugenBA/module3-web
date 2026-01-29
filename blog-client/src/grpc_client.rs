@@ -44,37 +44,6 @@ impl GrpcClient {
         Ok(request)
     }
 
-    fn from_proto_user(user: ProtoUser) -> User {
-        User {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            created_at: chrono::DateTime::from_timestamp(
-                user.created_at.unwrap().seconds,
-                user.created_at.unwrap().nanos as u32,
-            )
-            .unwrap_or_else(|| chrono::Utc::now()),
-        }
-    }
-
-    fn from_proto_post(post: ProtoPost) -> Post {
-        Post {
-            id: post.id,
-            title: post.title,
-            content: post.content,
-            author_id: post.author_id,
-            created_at: chrono::DateTime::from_timestamp(
-                post.created_at.unwrap().seconds,
-                post.created_at.unwrap().nanos as u32,
-            )
-            .unwrap_or_else(|| chrono::Utc::now()),
-            updated_at: post.updated_at.map(|ts| {
-                chrono::DateTime::from_timestamp(ts.seconds, ts.nanos as u32)
-                    .unwrap_or_else(|| chrono::Utc::now())
-            }),
-        }
-    }
-
     pub(crate) async fn register(
         &self,
         username: &str,
@@ -132,7 +101,8 @@ impl GrpcClient {
         let response = client.create_post(request).await?;
         let response = response.into_inner();
         if let Some(post) = response.post {
-            Ok(Response { post: Some(vec![Self::from_proto_post(post)]), username: None, token: None })
+            Ok(Response { post: Some(vec![Post::from(post)]), username: "".to_string(),
+                token: "".to_string()})
         }
         else {
             Err(BlogClientError::CreatePostError("No post returned".to_string()))
@@ -146,7 +116,8 @@ impl GrpcClient {
         let response = client.get_post(request).await?;
         let response = response.into_inner();
         if let Some(post) = response.post {
-            Ok(Response { post: Some(vec![Self::from_proto_post(post)]), username: None, token: None })
+            Ok(Response { post: Some(vec![Post::from(post)]), username: "".to_string(), 
+                token: "".to_string() })
         }
         else {
             Err(BlogClientError::NotFound("No post returned".to_string()))
@@ -158,7 +129,7 @@ impl GrpcClient {
         id: i64,
         title: &str,
         content: &str,
-    ) -> Result<Post, BlogClientError> {
+    ) -> Result<Response, BlogClientError> {
         let request = UpdatePostRequest {
             id,
             title: title.to_string(),
@@ -170,28 +141,32 @@ impl GrpcClient {
         let response = client.update_post(request).await?;
         let response = response.into_inner();
         if let Some(post) = response.post {
-            Ok(Response { post: Some(vec![Self::from_proto_post(post)]), username: None, token: None })
+            Ok(Response { post: Some(vec![Post::from(post)]), username: "".to_string(), 
+                token: "".to_string() })
         }
         else {
             Err(BlogClientError::NotFound("No post returned".to_string()))
         }
     }
 
-    pub(crate) async fn delete_post(&self, id: i64) -> Result<(), BlogClientError> {
+    pub(crate) async fn delete_post(&self, id: i64) -> Result<Response, BlogClientError> {
         let request = DeletePostRequest { id };
 
         let mut client = self.client.clone();
         let request = self.create_request(request).await?;
         client.delete_post(request).await?;
-
-        Ok(())
+        Ok(Response{
+            post: None,
+            username: "".to_string(),
+            token: "".to_string(),
+        })  
     }
 
     pub(crate) async fn get_posts(
         &self,
         limit: Option<i64>,
         offset: Option<i64>,
-    ) -> Result<Vec<Post>, BlogClientError> {
+    ) -> Result<Response, BlogClientError> {
         let request = GetPostsRequest { offset, limit };
 
         let mut client = self.client.clone();
@@ -201,9 +176,8 @@ impl GrpcClient {
         let posts = response
             .posts
             .into_iter()
-            .map(Self::from_proto_post)
+            .map(Post::from)
             .collect();
-
-        Ok(posts)
+        Ok(Response{ post: Some(posts), username: "".to_string(), token: "".to_string() })
     }
 }

@@ -5,7 +5,7 @@ use blog_client::error::BlogClientError;
 use crate::cli::{Cli, Commands};
 
 mod cli;
-mod error;
+mod format_output;
 
 
 #[tokio::main]
@@ -19,9 +19,9 @@ async fn main() ->Result<(), Box<dyn Error>>{
     };
 
     let transport = if cli.grpc == true {
-        Transport::grpc(cli.server)
+        Transport::grpc(server_address.clone())
     } else {
-        Transport::Http(cli.server)
+        Transport::Http(server_address.clone())
     };
     let client = BlogClient::new(transport).await.expect("Error create client");
 
@@ -29,10 +29,10 @@ async fn main() ->Result<(), Box<dyn Error>>{
     println!("Server address: {}", server_address);
 
     // Загружаем сохраненный токен
-    let token = client.load_token();
+    client.load_token().await?;
 
     // Выполняем команду
-    match &cli.command {
+    let response = match &cli.command {
         Commands::Register { username, email, password } => {
             let result = client.register(username, email, password).await;
             // Для Register сохраняем токен, если он был получен
@@ -41,6 +41,7 @@ async fn main() ->Result<(), Box<dyn Error>>{
                     println!("User regiser, token saved to .blog_token");
                 }
             }
+            result
         }
         Commands::Login { username, password } => {
             let result = client.login(username, password).await;
@@ -50,35 +51,43 @@ async fn main() ->Result<(), Box<dyn Error>>{
                     println!("User: {}, login, Token saved to .blog_token", result.username);
                 }
             }
+            result
         }
         Commands::Create { title, content } => {
             if let Some(_) = client.get_token().await {
-                let resul = client.create_post(title, content).await;
-                
+                let result = client.create_post(title, content).await;
+                result
             } else {
-                Err("Token required. Please login first.".to_string())
+                Err(BlogClientError::Unauthorized("Token required. Please login first.".to_string()))
             }
         }
         Commands::Get { id } => {
             client.get_post(*id).await
         }
         Commands::Update { id, title, content } => {
-            if let Some(t) = client.get_token().await {
-                client.update_post(*id, title, content).await
+            if let Some(_) = client.get_token().await {
+                if let Some(title) = title && let Some(content) = content {
+                    client.update_post(*id, title, content).await
+                }
+                else {
+                    Err(BlogClientError::InvalidRequest("Not data post update".to_string()))
+                }
             } else {
-                Err("Token required. Please login first.".to_string())
+                Err(BlogClientError::Unauthorized("Token required. Please login first.".to_string()))
             }
         }
         Commands::Delete { id } => {
-            if let Some(t) = client.get_token().await {
+            if let Some(_) = client.get_token().await {
                 client.delete_post(*id).await
             } else {
-                Err("Token required. Please login first.".to_string())
+                Err(BlogClientError::Unauthorized("Token required. Please login first.".to_string()))
             }
         }
         Commands::List { limit, offset } => {
-            client.list_posts(*limit, *offset, token.as_deref()).await
+            client.list_posts(Some(*limit), Some(*offset)).await
         }
     };
+
+    Ok(())
 }
 

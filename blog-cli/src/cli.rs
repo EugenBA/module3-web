@@ -1,6 +1,4 @@
 use clap::{Parser, Subcommand};
-use std::fs;
-use std::path::Path;
 
 // Определяем возможные команды
 #[derive(Debug, Subcommand)]

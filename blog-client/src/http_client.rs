@@ -1,6 +1,6 @@
 use crate::error::BlogClientError;
 use crate::models::models::{
-    AuthResponse, CreatePostRequest, LoginRequest, Post, RegisterUserRequest, UpdatePostRequest,
+    Response, CreatePostRequest, LoginRequest, RegisterUserRequest, UpdatePostRequest,
 };
 use reqwest::Client;
 use serde_json::json;
@@ -75,14 +75,14 @@ impl HttpClient {
         username: &str,
         email: &str,
         password: &str,
-    ) -> Result<AuthResponse, BlogClientError> {
+    ) -> Result<Response, BlogClientError> {
         let body = json!(RegisterUserRequest {
             username: username.to_string(),
             email: email.to_string(),
             password: password.to_string(),
         });
 
-        self.request::<AuthResponse>(reqwest::Method::POST, "/api/auth/register", Some(body))
+        self.request::<Response>(reqwest::Method::POST, "/api/auth/register", Some(body))
             .await
     }
 
@@ -90,13 +90,13 @@ impl HttpClient {
         &self,
         username: &str,
         password: &str,
-    ) -> Result<AuthResponse, BlogClientError> {
+    ) -> Result<Response, BlogClientError> {
         let body = json!(LoginRequest {
             username: username.to_string(),
             password: password.to_string(),
         });
 
-        self.request::<AuthResponse>(reqwest::Method::POST, "/api/auth/login", Some(body))
+        self.request::<Response>(reqwest::Method::POST, "/api/auth/login", Some(body))
             .await
     }
 
@@ -104,18 +104,18 @@ impl HttpClient {
         &self,
         title: &str,
         content: &str,
-    ) -> Result<Post, BlogClientError> {
+    ) -> Result<Response, BlogClientError> {
         let body = json!(CreatePostRequest {
             title: title.to_string(),
             content: content.to_string(),
         });
 
-        self.request::<Post>(reqwest::Method::POST, "/api/posts", Some(body))
+        self.request::<Response>(reqwest::Method::POST, "/api/posts", Some(body))
             .await
     }
 
-    pub(crate) async fn get_post(&self, id: i64) -> Result<Post, BlogClientError> {
-        self.request::<Post>(reqwest::Method::GET, &format!("/api/posts/{}", id), None)
+    pub(crate) async fn get_post(&self, id: i64) -> Result<Response, BlogClientError> {
+        self.request::<Response>(reqwest::Method::GET, &format!("/api/posts/{}", id), None)
             .await
     }
 
@@ -124,14 +124,14 @@ impl HttpClient {
         id: i64,
         title: &str,
         content: &str,
-    ) -> Result<Post, BlogClientError> {
+    ) -> Result<Response, BlogClientError> {
         let body = json!(UpdatePostRequest {
             id,
             title: title.to_string(),
             content: content.to_string(),
         });
 
-        self.request::<Post>(
+        self.request::<Response>(
             reqwest::Method::PUT,
             &format!("/api/posts/{}", id),
             Some(body),
@@ -139,23 +139,23 @@ impl HttpClient {
         .await
     }
 
-    pub(crate) async fn delete_post(&self, id: i64) -> Result<(), BlogClientError> {
+    pub(crate) async fn delete_post(&self, id: i64) -> Result<Response, BlogClientError> {
         let response = self
-            .request::<serde_json::Value>(
+            .request::<Response>(
                 reqwest::Method::DELETE,
                 &format!("/api/posts/{}", id),
                 None,
             )
             .await?;
 
-        Ok(())
+        Ok(response)
     }
 
     pub(crate) async fn get_posts(
         &self,
         limit: Option<i64>,
         offset: Option<i64>,
-    ) -> Result<Vec<Post>, BlogClientError> {
+    ) -> Result<Response, BlogClientError> {
         let mut url = "/api/posts".to_string();
         let mut params = vec![];
 
@@ -170,7 +170,7 @@ impl HttpClient {
             url = format!("{}?{}", url, params.join("&"));
         }
 
-        self.request::<Vec<Post>>(reqwest::Method::GET, &url, None)
+        self.request::<Response>(reqwest::Method::GET, &url, None)
             .await
     }
 }

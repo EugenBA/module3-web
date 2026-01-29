@@ -1,6 +1,6 @@
 use std::fs;
 use std::path::Path;
-use crate::models::models::{Response, Post};
+use crate::models::models::{Response};
 use crate::{error::BlogClientError, grpc_client::GrpcClient, http_client::HttpClient};
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -461,7 +461,7 @@ impl BlogClient {
     /// }
     /// ```
     /// ```
-    pub async fn create_post(&self, title: &str, content: &str) -> Result<Post, BlogClientError> {
+    pub async fn create_post(&self, title: &str, content: &str) -> Result<Response, BlogClientError> {
         match self {
             Self {
                 http_client: Some(client),
@@ -504,7 +504,7 @@ impl BlogClient {
     /// - This function relies on the availability of a working transport mechanism (either HTTP or gRPC).
     ///   Ensure that the `BlogClient` is initialized with the appropriate transport client.
     /// ```
-    pub async fn get_post(&self, id: i64) -> Result<Post, BlogClientError> {
+    pub async fn get_post(&self, id: i64) -> Result<Response, BlogClientError> {
         match self {
             Self {
                 http_client: Some(client),
@@ -554,7 +554,7 @@ impl BlogClient {
         id: i64,
         title: &str,
         content: &str,
-    ) -> Result<Post, BlogClientError> {
+    ) -> Result<Response, BlogClientError> {
         match self {
             Self {
                 http_client: Some(client),
@@ -599,7 +599,7 @@ impl BlogClient {
     /// - The specific behavior, such as whether the deletion is idempotent, depends on the
     ///   implementation of the underlying clients.
     /// ```
-    pub async fn delete_post(&self, id: i64) -> Result<(), BlogClientError> {
+    pub async fn delete_post(&self, id: i64) -> Result<Response, BlogClientError> {
         match self {
             Self {
                 http_client: Some(client),
@@ -654,7 +654,7 @@ impl BlogClient {
         &self,
         limit: Option<i64>,
         offset: Option<i64>,
-    ) -> Result<Vec<Post>, BlogClientError> {
+    ) -> Result<Response, BlogClientError> {
         match self {
             Self {
                 http_client: Some(client),
