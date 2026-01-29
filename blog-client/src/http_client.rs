@@ -2,7 +2,12 @@ use crate::error::BlogClientError;
 use crate::models::models::{
     Response, CreatePostRequest, LoginRequest, RegisterUserRequest, UpdatePostRequest,
 };
-use reqwest::Client;
+#[cfg(not(target_arch = "wasm32"))]
+use reqwest::Client; // Для нативных платформ
+
+#[cfg(target_arch = "wasm32")]
+use gloo_net::http::Request as Client;
+//use reqwest::Client;
 use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::RwLock;
