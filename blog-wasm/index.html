@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog Client</title>
+    <style>
+        /* тот же CSS что и выше */
+    </style>
+</head>
+<body>
+<div id="app">
+    <div id="content"></div>
+</div>
+
+<script type="module">
+    import init, { BlogClient, set_panic_hook } from './pkg/blog_client.js';
+
+    let client = null;
+
+    async function initialize() {
+        await init();
+        set_panic_hook();
+
+        client = new BlogClient("http://localhost:3000");
+
+        // Проверяем аутентификацию и загружаем посты
+        updateUI();
+        loadPosts();
+    }
+
+    function updateUI() {
+        const isAuthenticated = client.is_authenticated();
+        const currentUser = client.get_current_user();
+
+        let html = `
+                <header>
+                    <h1>Blog Client</h1>
+                    <div class="auth-status">
+            `;
+
+        if (isAuthenticated && currentUser && currentUser.username) {
+            html += `<span>Logged in as: ${currentUser.username}</span>
+                         <button onclick="logout()">Logout</button>`;
+        } else {
+            html += `<span>Not logged in</span>`;
+        }
+
+        html += `</div></header>`;
+
+        if (!isAuthenticated) {
+            html += `
+                    <div class="auth-forms">
+                        <div class="login-form">
+                            <h2>Login</h2>
+                            <form onsubmit="handleLogin(event)">
+                                <input type="text" id="login-username" placeholder="Username" required>
+                                <input type="password" id="login-password" placeholder="Password" required>
+                                <button type="submit">Login</button>
+                            </form>
+                        </div>
+
+                        <div class="register-form">
+                            <h2>Register</h2>
+                            <form onsubmit="handleRegister(event)">
+                                <input type="text" id="register-username" placeholder="Username" required>
+                                <input type="email" id="register-email" placeholder="Email" required>
+                                <input type="password" id="register-password" placeholder="Password" required>
+                                <button type="submit">Register</button>
+                            </form>
+                        </div>
+                    </div>
+                `;
+        } else {
+            html += `
+                    <div class="create-post-form">
+                        <h2>Create New Post</h2>
+                        <form onsubmit="handleCreatePost(event)">
+                            <input type="text" id="post-title" placeholder="Title" required>
+                            <textarea id="post-content" placeholder="Content" required></textarea>
+                            <button type="submit">Create Post</button>
+                        </form>
+                    </div>
+                `;
+        }
+
+        html += `<div id="posts-container"></div>
+                     <div id="error-container"></div>`;
+
+        document.getElementById('content').innerHTML = html;
+    }
+
+    async function loadPosts() {
+        try {
+            const posts = await client.get_posts();
+            renderPosts(posts);
+        } catch (error) {
+            showError(error);
+        }
+    }
+
+    function renderPosts(posts) {
+        const container = document.getElementById('posts-container');
+        if (!container) return;
+
+        let html = '<div class="post-list"><h2>All Posts</h2>';
+
+        if (posts && posts.length > 0) {
+            posts.forEach(post => {
+                html += `
+                        <div class="post" data-id="${post.id}">
+                            <h3>${post.title}</h3>
+                            <p>${post.content}</p>
+                            <div class="post-meta">
+                                <span>Author: ${post.author_name}</span>
+                                <span> | Created: ${post.created_at}</span>
+                            </div>
+                            <div class="post-actions">
+                                <button onclick="editPost(${post.id}, '${post.title}', '${post.content}')">Edit</button>
+                                <button onclick="deletePost(${post.id})">Delete</button>
+                            </div>
+                        </div>
+                    `;
+            });
+        } else {
+            html += '<p>No posts yet.</p>';
+        }
+
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    // Обработчики событий
+    window.handleLogin = async function(event) {
+        event.preventDefault();
+
+        const username = document.getElementById('login-username').value;
+        const password = document.getElementById('login-password').value;
+
+        if (!username || !password) {
+            showError("Please fill in all fields");
+            return;
+        }
+
+        try {
+            await client.login(username, password);
+            updateUI();
+            loadPosts();
+            clearError();
+        } catch (error) {
+            showError(error);
+        }
+    };
+
+    window.handleRegister = async function(event) {
+        event.preventDefault();
+
+        const username = document.getElementById('register-username').value;
+        const email = document.getElementById('register-email').value;
+        const password = document.getElementById('register-password').value;
+
+        if (!username || !email || !password) {
+            showError("Please fill in all fields");
+            return;
+        }
+
+        try {
+            await client.register(username, email, password);
+            updateUI();
+            loadPosts();
+            clearError();
+        } catch (error) {
+            showError(error);
+        }
+    };
+
+    window.logout = function() {
+        client.logout();
+        updateUI();
+        loadPosts();
+    };
+
+    window.handleCreatePost = async function(event) {
+        event.preventDefault();
+
+        const title = document.getElementById('post-title').value;
+        const content = document.getElementById('post-content').value;
+
+        if (!title || !content) {
+            showError("Title and content are required");
+            return;
+        }
+
+        try {
+            await client.create_post(title, content);
+            document.getElementById('post-title').value = '';
+            document.getElementById('post-content').value = '';
+            loadPosts();
+            clearError();
+        } catch (error) {
+            showError(error);
+        }
+    };
+
+    window.editPost = async function(id, currentTitle, currentContent) {
+        const newTitle = prompt("Enter new title:", currentTitle);
+        if (newTitle === null) return;
+
+        const newContent = prompt("Enter new content:", currentContent);
+        if (newContent === null) return;
+
+        if (!newTitle || !newContent) {
+            showError("Title and content are required");
+            return;
+        }
+
+        try {
+            await client.update_post(id, newTitle, newContent);
+            loadPosts();
+            clearError();
+        } catch (error) {
+            showError(error);
+        }
+    };
+
+    window.deletePost = async function(id) {
+        if (!confirm("Are you sure you want to delete this post?")) {
+            return;
+        }
+
+        try {
+            await client.delete_post(id);
+            loadPosts();
+            clearError();
+        } catch (error) {
+            showError(error);
+        }
+    };
+
+    function showError(message) {
+        const container = document.getElementById('error-container');
+        if (container) {
+            container.innerHTML = `<div class="error">${message}</div>`;
+        }
+    }
+
+    function clearError() {
+        const container = document.getElementById('error-container');
+        if (container) {
+            container.innerHTML = '';
+        }
+    }
+
+    // Инициализация при загрузке
+    document.addEventListener('DOMContentLoaded', initialize);
+</script>
+</body>
+</html>

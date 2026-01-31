@@ -1,12 +1,12 @@
 #![warn(missing_docs)]
-pub mod error;
-mod grpc_client;
-mod http_client;
-
 pub mod clients;
+pub mod error;
+mod transports;
 mod models;
 
+#[cfg(not(target_arch = "wasm32"))]
 pub mod blog {
     tonic::include_proto!("blog");
 }
+
 

@@ -5,23 +5,24 @@ edition = "2024"
 build = "build.rs"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-tokio = { version = "1", default-features = false, features = ["rt", "time"] }
+tokio = { version = "1.49", features = ["rt", "time", "sync"]}
 gloo-net="0.6"
 
-#[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-#tokio.workspace = true
-#reqwest = { version = "0.13", features = ["json"] }
-
-[dependencies]
-thiserror.workspace = true
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio.workspace = true
+reqwest = { version = "0.13", features = ["json"] }
 tonic.workspace = true
-serde_json.workspace = true
-serde.workspace = true
-chrono.workspace = true
 prost-types.workspace = true
 prost.workspace = true
 tonic-prost.workspace = true
 
+[dependencies]
+thiserror.workspace = true
+serde_json.workspace = true
+serde.workspace = true
+chrono.workspace = true
+gloo-net = "0.6.0"
 
-[build-dependencies]
+
+[target.'cfg(not(target_arch = "wasm32"))'.build-dependencies]
 tonic-prost-build = "0.14"

@@ -1,19 +1,31 @@
+
+#[cfg(not(target_arch = "wasm32"))]
 use reqwest::StatusCode;
 use thiserror::Error;
+#[cfg(not(target_arch = "wasm32"))]
 use tonic::Status;
+#[cfg(not(target_arch = "wasm32"))]
 use tonic::codegen::http::uri::InvalidUri;
 
 #[derive(Error, Debug)]
 pub enum BlogClientError {
+    #[cfg(not(target_arch = "wasm32"))]
     #[error("HTTP request error: {0}")]
     HttpRequest(#[from] reqwest::Error),
 
+    #[cfg(target_arch = "wasm32")]
+    #[error("HTTP request error: {0}")]
+    HttpRequest(#[from] gloo_net::Error),
+
+    #[cfg(not(target_arch = "wasm32"))]
     #[error("gRPC transport error: {0}")]
     GrpcTransport(#[from] tonic::transport::Error),
 
+    #[cfg(not(target_arch = "wasm32"))]
     #[error("gRPC status error: {0}")]
     GrpcStatus(#[from] Status),
 
+    #[cfg(not(target_arch = "wasm32"))]
     #[error("gRPC status error: {0}")]
     GrpcUriError(#[from] InvalidUri),
 
@@ -46,23 +58,36 @@ pub enum BlogClientError {
 
     #[error("Unknown error: {0}")]
     Unknown(String),
-    
+
     #[error("Create post error: {0}")]
     CreatePostError(String),
 }
 
 impl BlogClientError {
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn from_http_status(status: StatusCode, message: String) -> Self {
-        match status {
-            StatusCode::NOT_FOUND => Self::NotFound(message),
-            StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => Self::Unauthorized(message),
-            StatusCode::BAD_REQUEST => Self::InvalidRequest(message),
-            StatusCode::CONFLICT => Self::AlreadyExists(message),
-            StatusCode::UNPROCESSABLE_ENTITY => Self::Validation(message),
+        match status.as_u16() {
+            404 => Self::NotFound(message),
+            401 | 403 => Self::Unauthorized(message),
+            400 => Self::InvalidRequest(message),
+            409 => Self::AlreadyExists(message),
+            422 => Self::Validation(message),
             _ => Self::Unknown(format!("HTTP {}: {}", status, message)),
         }
     }
 
+    #[cfg(target_arch = "wasm32")]
+    pub fn from_http_status(status: u16, message: String) -> Self {
+        match status {
+            404 => Self::NotFound(message),
+            401 | 403 => Self::Unauthorized(message),
+            400 => Self::InvalidRequest(message),
+            409 => Self::AlreadyExists(message),
+            422 => Self::Validation(message),
+            _ => Self::Unknown(format!("HTTP {}: {}", status, message)),
+        }
+    }
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn from_grpc_status(status: Status) -> Self {
         match status.code() {
             tonic::Code::NotFound => Self::NotFound(status.message().to_string()),

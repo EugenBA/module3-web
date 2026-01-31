@@ -1,7 +1,9 @@
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod grpc_client {
 use crate::blog::proto_blog_service_client::ProtoBlogServiceClient;
 use crate::blog::*;
 use crate::error::BlogClientError;
-use crate::models::models::{Response, Post, User};
+use crate::models::models::{Response, Post};
 use std::sync::Arc;
 use std::vec;
 use tokio::sync::RwLock;
@@ -63,7 +65,7 @@ impl GrpcClient {
         let token = response.token;
         let username = response.username;
 
-        Ok(Response {post: None, username, token })
+        Ok(Response { post: None, username, token })
     }
 
     pub(crate) async fn login(
@@ -101,10 +103,12 @@ impl GrpcClient {
         let response = client.create_post(request).await?;
         let response = response.into_inner();
         if let Some(post) = response.post {
-            Ok(Response { post: Some(vec![Post::from(post)]), username: "".to_string(),
-                token: "".to_string()})
-        }
-        else {
+            Ok(Response {
+                post: Some(vec![Post::from(post)]),
+                username: "".to_string(),
+                token: "".to_string()
+            })
+        } else {
             Err(BlogClientError::CreatePostError("No post returned".to_string()))
         }
     }
@@ -116,10 +120,12 @@ impl GrpcClient {
         let response = client.get_post(request).await?;
         let response = response.into_inner();
         if let Some(post) = response.post {
-            Ok(Response { post: Some(vec![Post::from(post)]), username: "".to_string(), 
-                token: "".to_string() })
-        }
-        else {
+            Ok(Response {
+                post: Some(vec![Post::from(post)]),
+                username: "".to_string(),
+                token: "".to_string()
+            })
+        } else {
             Err(BlogClientError::NotFound("No post returned".to_string()))
         }
     }
@@ -141,10 +147,12 @@ impl GrpcClient {
         let response = client.update_post(request).await?;
         let response = response.into_inner();
         if let Some(post) = response.post {
-            Ok(Response { post: Some(vec![Post::from(post)]), username: "".to_string(), 
-                token: "".to_string() })
-        }
-        else {
+            Ok(Response {
+                post: Some(vec![Post::from(post)]),
+                username: "".to_string(),
+                token: "".to_string()
+            })
+        } else {
             Err(BlogClientError::NotFound("No post returned".to_string()))
         }
     }
@@ -155,11 +163,11 @@ impl GrpcClient {
         let mut client = self.client.clone();
         let request = self.create_request(request).await?;
         client.delete_post(request).await?;
-        Ok(Response{
+        Ok(Response {
             post: None,
             username: "".to_string(),
             token: "".to_string(),
-        })  
+        })
     }
 
     pub(crate) async fn get_posts(
@@ -178,6 +186,7 @@ impl GrpcClient {
             .into_iter()
             .map(Post::from)
             .collect();
-        Ok(Response{ post: Some(posts), username: "".to_string(), token: "".to_string() })
+        Ok(Response { post: Some(posts), username: "".to_string(), token: "".to_string() })
     }
+}
 }

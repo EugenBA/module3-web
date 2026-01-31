@@ -1,8 +1,10 @@
 use std::error::Error;
+use chrono::Duration;
 use clap::Parser;
 use blog_client::clients::client::{BlogClient, Transport};
 use blog_client::error::BlogClientError;
 use crate::cli::{Cli, Commands};
+
 
 mod cli;
 mod format_output;
@@ -23,7 +25,8 @@ async fn main() ->Result<(), Box<dyn Error>>{
     } else {
         Transport::Http(server_address.clone())
     };
-    let client = BlogClient::new(transport).await.expect("Error create client");
+    let timeout = core::time::Duration::from_secs(30);
+    let client = BlogClient::new(transport, timeout).await.expect("Error create client");
 
     println!("Using {} transport", if cli.grpc { "gRPC" } else { "HTTP" });
     println!("Server address: {}", server_address);

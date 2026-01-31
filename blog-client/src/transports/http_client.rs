@@ -2,30 +2,29 @@ use crate::error::BlogClientError;
 use crate::models::models::{
     Response, CreatePostRequest, LoginRequest, RegisterUserRequest, UpdatePostRequest,
 };
-#[cfg(not(target_arch = "wasm32"))]
-use reqwest::Client; // Для нативных платформ
 
-#[cfg(target_arch = "wasm32")]
-use gloo_net::http::Request as Client;
-//use reqwest::Client;
+use crate::transports::http_helpers::{HttpClientRequest, HttpRequestMethod, HttpRequest};
 use serde_json::json;
 use std::sync::Arc;
+use core::time::Duration;
 use tokio::sync::RwLock;
 
-#[derive(Clone)]
+use crate::transports::http_helpers::RequestBuilderExt;
+
+
 pub(crate) struct HttpClient {
-    client: Client,
+    #[cfg(not(target_arch = "wasm32"))]
+    client: HttpClientRequest<reqwest::Client>,
+    #[cfg(target_arch = "wasm32")]
+    client: HttpClientRequest<gloo_net::http::Request>,
     base_url: String,
     token: Arc<RwLock<Option<String>>>,
 }
 
-impl HttpClient {
-    pub(crate) async fn new(base_url: &str) -> Result<Self, BlogClientError> {
-        let client = Client::builder()
-            .user_agent(format!("blog-client/{}", env!("CARGO_PKG_VERSION")))
-            .timeout(std::time::Duration::from_secs(30))
-            .build()?;
 
+impl HttpClient {
+    pub(crate) async fn new(base_url: &str, timeout: Duration) -> Result<Self, BlogClientError> {
+        let client = HttpClientRequest::new(timeout);
         Ok(Self {
             client,
             base_url: base_url.trim_end_matches('/').to_string(),
@@ -43,7 +42,7 @@ impl HttpClient {
 
     async fn request<T>(
         &self,
-        method: reqwest::Method,
+        method: HttpRequestMethod,
         path: &str,
         body: Option<serde_json::Value>,
     ) -> Result<T, BlogClientError>
@@ -53,24 +52,24 @@ impl HttpClient {
         let url = format!("{}{}", self.base_url, path);
         let mut request = self.client.request(method, &url);
 
-        // Добавляем токен если есть
+       // Добавляем токен если есть
         if let Some(token) = self.get_token().await {
             request = request.bearer_auth(token);
         }
 
         // Добавляем тело если нужно
         if let Some(body) = body {
-            request = request.json(&body);
+            request = request.json_request(&body);
         }
 
         let response = request.send().await?;
         let status = response.status();
 
-        if status.is_success() {
+        if self.client.status_ok(status) {
             let data = response.json::<T>().await?;
             Ok(data)
         } else {
-            let error_text = response.text().await.unwrap_or_default();
+            let error_text = response.text().await?;
             Err(BlogClientError::from_http_status(status, error_text))
         }
     }
@@ -87,7 +86,7 @@ impl HttpClient {
             password: password.to_string(),
         });
 
-        self.request::<Response>(reqwest::Method::POST, "/api/auth/register", Some(body))
+        self.request::<Response>(HttpRequestMethod::POST, "/api/auth/register", Some(body))
             .await
     }
 
@@ -101,7 +100,7 @@ impl HttpClient {
             password: password.to_string(),
         });
 
-        self.request::<Response>(reqwest::Method::POST, "/api/auth/login", Some(body))
+        self.request::<Response>(HttpRequestMethod::POST, "/api/auth/login", Some(body))
             .await
     }
 
@@ -115,12 +114,12 @@ impl HttpClient {
             content: content.to_string(),
         });
 
-        self.request::<Response>(reqwest::Method::POST, "/api/posts", Some(body))
+        self.request::<Response>(HttpRequestMethod::POST, "/api/posts", Some(body))
             .await
     }
 
     pub(crate) async fn get_post(&self, id: i64) -> Result<Response, BlogClientError> {
-        self.request::<Response>(reqwest::Method::GET, &format!("/api/posts/{}", id), None)
+        self.request::<Response>(HttpRequestMethod::GET, &format!("/api/posts/{}", id), None)
             .await
     }
 
@@ -137,7 +136,7 @@ impl HttpClient {
         });
 
         self.request::<Response>(
-            reqwest::Method::PUT,
+            HttpRequestMethod::PUT,
             &format!("/api/posts/{}", id),
             Some(body),
         )
@@ -147,7 +146,7 @@ impl HttpClient {
     pub(crate) async fn delete_post(&self, id: i64) -> Result<Response, BlogClientError> {
         let response = self
             .request::<Response>(
-                reqwest::Method::DELETE,
+                HttpRequestMethod::DELETE,
                 &format!("/api/posts/{}", id),
                 None,
             )
@@ -175,7 +174,7 @@ impl HttpClient {
             url = format!("{}?{}", url, params.join("&"));
         }
 
-        self.request::<Response>(reqwest::Method::GET, &url, None)
+        self.request::<Response>(HttpRequestMethod::GET, &url, None)
             .await
     }
 }

@@ -1,6 +1,8 @@
+#[cfg(not(target_arch = "wasm32"))]
 use std::time::Duration;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+#[cfg(not(target_arch = "wasm32"))]
 use crate::blog::ProtoPost;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -20,6 +22,7 @@ pub struct Post {
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
 }
+#[cfg(not(target_arch = "wasm32"))]
 impl Post{
     fn timestamp_to_chrono(timestamp: Option<prost_types::Timestamp>) -> DateTime<Utc>{
         if let Some(ts) = timestamp {
@@ -33,7 +36,7 @@ impl Post{
         }
     }
 }
-
+#[cfg(not(target_arch = "wasm32"))]
 impl From<ProtoPost> for Post{
     fn from(value: ProtoPost) -> Self {
         Self{ id: value.id,
