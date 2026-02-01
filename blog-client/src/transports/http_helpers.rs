@@ -1,10 +1,13 @@
+use std::error::Error;
 #[cfg(not(target_arch = "wasm32"))]
-use reqwest::{Method, RequestBuilder, Client};
+use reqwest::{Method, RequestBuilder, Client, Response};
 #[cfg(target_arch = "wasm32")]
-use gloo_net::http::{Request, RequestBuilder};
+use gloo_net::http::{Request, RequestBuilder, Response};
 use serde::Serialize;
 #[cfg(target_arch = "wasm32")]
 use std::fmt::Display;
+#[cfg(target_arch = "wasm32")]
+use log::{info, error, warn, debug, trace};
 use core::time::Duration;
 
 pub(crate) trait HttpRequest {
@@ -24,6 +27,20 @@ pub(crate) struct HttpClientRequest<T>{
     timeout: Duration
 
 }
+
+pub(crate) struct HttpClientRequestBuilder {
+    #[cfg(target_arch = "wasm32")]
+    request: Request,
+    #[cfg(not(target_arch = "wasm32"))]
+    request: RequestBuilder
+}
+
+impl HttpClientRequestBuilder{
+    pub async fn send(&self) -> Response {
+        self.send().await?
+    }
+}
+
 
 impl<T> HttpClientRequest<T> {
     #[cfg(not(target_arch = "wasm32"))]
@@ -62,6 +79,7 @@ impl HttpRequest for HttpClientRequest<Client> {
 #[cfg(target_arch = "wasm32")]
 impl HttpRequest for HttpClientRequest<Request> {
     fn new(timeout: Duration) -> Self {
+        wasm_logger::init(wasm_logger::Config::new(log::Level::Trace));
         Self {
             client: None,
             timeout
@@ -100,7 +118,7 @@ impl HttpRequest for HttpClientRequest<Request> {
 #[cfg(target_arch = "wasm32")]
 pub(crate) trait RequestBuilderExt {
     fn bearer_auth<T:Display>(self, token: T) -> Self;
-    fn json_request<T: Serialize>(self, data: &T) -> Self;
+    fn json_request<T: Serialize>(self, data: &T) -> HttpClientRequestBuilder;
 }
 #[cfg(target_arch = "wasm32")]
 impl RequestBuilderExt for gloo_net::http::RequestBuilder {
@@ -109,27 +127,29 @@ impl RequestBuilderExt for gloo_net::http::RequestBuilder {
         self
     }
 
-    fn json_request<T: Serialize>(mut self, data: &T) -> Self {
-        if let Ok(data) = serde_json::to_string(data) {
-            self = self.header("Content-Type", "application/json");
-            let req = self.body(data).expect("Failed to create request");
-            let url = req.url().to_string();
-            let method = req.method();
-            self = gloo_net::http::RequestBuilder::new(&url).method(method);
+    fn json_request<T: Serialize>(mut self, data: &T) -> HttpClientRequestBuilder {
+        trace!("Json create: {}", data);
+        let user_agent = format!("blog-client/{}", env!("CARGO_PKG_VERSION"));
+        self = self.header("Content-Type", "application/json")
+                       .header("User-Agent", user_agent.as_str());
+        trace!("RB: {:?}", self);
+        let req = self.json(data).except("error blog client json data");
+        HttpClientRequestBuilder{
+            request: self
         }
-        self
-
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) trait RequestBuilderExt {
-    fn json_request<T: Serialize>(self, data: &T) -> Self;
+    fn json_request<T: Serialize>(self, data: &T) -> HttpClientRequestBuilder;
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl RequestBuilderExt for reqwest::RequestBuilder {
-    fn json_request<T: Serialize>(self, data: &T) -> Self {
-        self.json(data)
+impl RequestBuilderExt for RequestBuilder {
+    fn json_request<T: Serialize>(self, data: &T) -> HttpClientRequestBuilder {
+        HttpClientRequestBuilder{
+            request: self.json(data)
+        }
     }
 }

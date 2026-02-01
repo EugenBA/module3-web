@@ -2,7 +2,7 @@
 pub mod clients;
 pub mod error;
 mod transports;
-mod models;
+pub mod models;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub mod blog {

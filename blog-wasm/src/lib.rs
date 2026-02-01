@@ -1,6 +1,8 @@
 
 use wasm_bindgen::prelude::*;
 use blog_client::clients::client::{BlogClient, Transport};
+use blog_client::models::models::User;
+
 use core::time::Duration;
 
 // Указываем, что эту функцию можно вызывать из JS
@@ -53,7 +55,7 @@ impl WasmBlogClient {
 
     #[wasm_bindgen]
     pub async fn delete_post(&self, id: i64) -> Result<JsValue, JsValue> {
-        let response = self.http_client.delete_post(id).await
+        let _ = self.http_client.delete_post(id).await
             .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
         Ok(JsValue::from_str("ok"))
     }
@@ -74,7 +76,27 @@ impl WasmBlogClient {
 
     #[wasm_bindgen]
     pub fn logout(&self) -> Result<JsValue, JsValue> {
-        self.http_client.clear_token().map_err(|e| JsValue::from_str(&format!("{}", e)));
+        let _ = self.http_client.clear_token().map_err(|e| JsValue::from_str(&format!("{}", e)));
         Ok(JsValue::from_str("Logout successful."))
     }
+
+    #[wasm_bindgen]
+    pub async fn is_authenticated(&self) -> bool {
+        self.http_client.get_token().await.is_some()
+    }
+
+    #[wasm_bindgen]
+    pub fn get_current_user(&self) -> Result<JsValue, JsValue> {
+        let user = User{
+            id: 0,
+            username: "".to_string(),
+            email: "".to_string(),
+            created_at: Default::default(),
+        };
+        Ok(serde_wasm_bindgen::to_value(&user)?)
+    }
+}
+#[wasm_bindgen]
+pub fn set_panic_hook() {
+    console_error_panic_hook::set_once();
 }
