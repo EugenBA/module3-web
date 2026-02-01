@@ -14,7 +14,7 @@
 </div>
 
 <script type="module">
-    import init, { BlogClient, set_panic_hook } from './pkg/blog_client.js';
+    import init, { BlogClient, set_panic_hook } from './pkg/blog_wasm.js';
 
     let client = null;
 
@@ -22,14 +22,15 @@
         await init();
         set_panic_hook();
 
-        client = new BlogClient("http://localhost:3000");
+        client = new BlogClient("http://localhost:3000", 30);
 
         // Проверяем аутентификацию и загружаем посты
-        updateUI();
-        loadPosts();
+        update_ui();
+        await load_posts();
     }
 
-    function updateUI() {
+
+    function update_ui() {
         const isAuthenticated = client.is_authenticated();
         const currentUser = client.get_current_user();
 
@@ -90,16 +91,16 @@
         document.getElementById('content').innerHTML = html;
     }
 
-    async function loadPosts() {
+    async function load_posts() {
         try {
             const posts = await client.get_posts();
-            renderPosts(posts);
+            render_posts(posts);
         } catch (error) {
-            showError(error);
+            show_error(error);
         }
     }
 
-    function renderPosts(posts) {
+    function render_posts(posts) {
         const container = document.getElementById('posts-container');
         if (!container) return;
 
@@ -138,17 +139,17 @@
         const password = document.getElementById('login-password').value;
 
         if (!username || !password) {
-            showError("Please fill in all fields");
+            show_error("Please fill in all fields");
             return;
         }
 
         try {
             await client.login(username, password);
-            updateUI();
-            loadPosts();
-            clearError();
+            update_ui();
+            await load_posts();
+            clear_error();
         } catch (error) {
-            showError(error);
+            show_error(error);
         }
     };
 
@@ -160,24 +161,24 @@
         const password = document.getElementById('register-password').value;
 
         if (!username || !email || !password) {
-            showError("Please fill in all fields");
+            show_error("Please fill in all fields");
             return;
         }
 
         try {
             await client.register(username, email, password);
-            updateUI();
-            loadPosts();
-            clearError();
+            update_ui();
+            await load_posts();
+            clear_error();
         } catch (error) {
-            showError(error);
+            show_error(error);
         }
     };
 
     window.logout = function() {
         client.logout();
-        updateUI();
-        loadPosts();
+        update_ui();
+        load_posts();
     };
 
     window.handleCreatePost = async function(event) {
@@ -187,7 +188,7 @@
         const content = document.getElementById('post-content').value;
 
         if (!title || !content) {
-            showError("Title and content are required");
+            show_error("Title and content are required");
             return;
         }
 
@@ -195,10 +196,10 @@
             await client.create_post(title, content);
             document.getElementById('post-title').value = '';
             document.getElementById('post-content').value = '';
-            loadPosts();
-            clearError();
+            await load_posts();
+            clear_error();
         } catch (error) {
-            showError(error);
+            show_error(error);
         }
     };
 
@@ -210,16 +211,16 @@
         if (newContent === null) return;
 
         if (!newTitle || !newContent) {
-            showError("Title and content are required");
+            show_error("Title and content are required");
             return;
         }
 
         try {
             await client.update_post(id, newTitle, newContent);
-            loadPosts();
-            clearError();
+            await load_posts();
+            clear_error();
         } catch (error) {
-            showError(error);
+            show_error(error);
         }
     };
 
@@ -230,21 +231,21 @@
 
         try {
             await client.delete_post(id);
-            loadPosts();
-            clearError();
+            await load_posts();
+            clear_error();
         } catch (error) {
-            showError(error);
+            show_error(error);
         }
     };
 
-    function showError(message) {
+    function show_error(message) {
         const container = document.getElementById('error-container');
         if (container) {
             container.innerHTML = `<div class="error">${message}</div>`;
         }
     }
 
-    function clearError() {
+    function clear_error() {
         const container = document.getElementById('error-container');
         if (container) {
             container.innerHTML = '';

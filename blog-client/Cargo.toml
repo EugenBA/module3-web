@@ -7,6 +7,7 @@ build = "build.rs"
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 tokio = { version = "1.49", features = ["rt", "time", "sync"]}
 gloo-net="0.6"
+gloo-storage = "0.3"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio.workspace = true

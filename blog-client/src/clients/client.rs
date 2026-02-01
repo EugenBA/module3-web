@@ -1,15 +1,17 @@
+use crate::models::models::Response;
+use crate::{error::BlogClientError, transports::http_client::HttpClient};
+use core::time::Duration;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+
+#[cfg(not(target_arch = "wasm32"))]
+use crate::transports::grpc_client::grpc_client::GrpcClient;
+#[cfg(target_arch = "wasm32")]
+use gloo_storage::{LocalStorage, Storage};
 #[cfg(not(target_arch = "wasm32"))]
 use std::fs;
 #[cfg(not(target_arch = "wasm32"))]
 use std::path::Path;
-use crate::models::models::{Response};
-use crate::{error::BlogClientError, transports::http_client::HttpClient};
-use core::time::Duration;
-
-#[cfg(not(target_arch = "wasm32"))]
-use crate::{transports::grpc_client::grpc_client::GrpcClient};
-use std::sync::Arc;
-use tokio::sync::RwLock;
 
 #[derive(Debug, Clone)]
 pub enum Transport {
@@ -32,7 +34,6 @@ impl Transport {
         Self::Grpc(addr.into())
     }
 }
-
 
 #[derive(Clone)]
 pub struct BlogClient {
@@ -69,7 +70,10 @@ impl BlogClient {
         }
     }
 
-    pub async fn http(base_url: impl Into<String>, timeout: Duration) -> Result<Self, BlogClientError> {
+    pub async fn http(
+        base_url: impl Into<String>,
+        timeout: Duration,
+    ) -> Result<Self, BlogClientError> {
         Self::new(Transport::Http(base_url.into()), timeout).await
     }
 
@@ -130,11 +134,7 @@ impl BlogClient {
         }
     }
 
-    pub async fn login(
-        &self,
-        username: &str,
-        password: &str,
-    ) -> Result<Response, BlogClientError> {
+    pub async fn login(&self, username: &str, password: &str) -> Result<Response, BlogClientError> {
         match self {
             Self {
                 http_client: Some(client),
@@ -157,7 +157,11 @@ impl BlogClient {
         }
     }
 
-    pub async fn create_post(&self, title: &str, content: &str) -> Result<Response, BlogClientError> {
+    pub async fn create_post(
+        &self,
+        title: &str,
+        content: &str,
+    ) -> Result<Response, BlogClientError> {
         match self {
             Self {
                 http_client: Some(client),
@@ -253,12 +257,13 @@ impl BlogClient {
                 let token = fs::read_to_string(token_file)?;
                 self.set_token(Some(token)).await;
             }
-            Ok(())
         }
         #[cfg(target_arch = "wasm32")]
         {
-            Err(BlogClientError::Unknown("Not supported on wasm32".to_string()))
+            let token = LocalStorage::get("blog_token")?;
+            self.set_token(Some(token)).await;
         }
+        Ok(())
     }
 
     pub fn save_token(&self, token: &str) -> Result<(), BlogClientError> {
@@ -269,10 +274,27 @@ impl BlogClient {
         }
         #[cfg(target_arch = "wasm32")]
         {
-            Err(BlogClientError::Unknown("Not supported on wasm32".to_string()))
+            LocalStorage::set("blog_token", token)?;
+            self.set_token(Some(token.to_string()));
+            Ok(())
         }
     }
 
+    pub fn clear_token(&self) -> Result<(), BlogClientError> {
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let token_file = ".blog_token";
+            if Path::new(token_file).exists() {
+                fs::remove_file(".blog_token")?;
+            }
+        }
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            LocalStorage::delete("blog_token");
+        }
+        Ok(())
+    }
 }
 
 pub struct BlogClientBuilder {

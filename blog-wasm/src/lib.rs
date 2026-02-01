@@ -1,7 +1,80 @@
+
 use wasm_bindgen::prelude::*;
+use blog_client::clients::client::{BlogClient, Transport};
+use core::time::Duration;
 
 // Указываем, что эту функцию можно вызывать из JS
 #[wasm_bindgen]
 pub fn greet(name: &str) -> String {
     format!("Привет, {name}! Rust говорит тебе: добро пожаловать в WebAssembly.")
+}
+
+#[wasm_bindgen]
+struct WasmBlogClient{
+    pub(crate) http_client: BlogClient
+}
+#[wasm_bindgen]
+impl WasmBlogClient {
+
+    #[wasm_bindgen(constructor)]
+    pub async fn new(url: String, timeout_sec: i32) -> Result<Self, JsValue> {
+        let transport = Transport::http(url);
+        let timeout = Duration::from_secs(timeout_sec as u64);
+
+        let http_client = BlogClient::new(transport, timeout)
+            .await.map_err(|e| JsValue::from_str(&format!("{}", e)))?;
+        Ok(Self { http_client })
+    }
+    #[wasm_bindgen]
+    pub async fn register(&self, username: String, password: String) -> Result<JsValue, JsValue> {
+        let response = self.http_client.login(&username, &password).await
+            .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
+        Ok(JsValue::from_str(&response.token))
+    }
+    #[wasm_bindgen]
+    pub async fn login(&self, username: String, password: String) -> Result<JsValue, JsValue> {
+        let response = self.http_client.login(&username, &password).await
+            .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
+        Ok(JsValue::from_str(&response.token))
+    }
+
+    #[wasm_bindgen]
+    pub async fn create_post(&self, title: String, content: String) -> Result<JsValue, JsValue> {
+        let response = self.http_client.create_post(&title, &content).await
+            .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
+        Ok(serde_wasm_bindgen::to_value(&response.post)?)
+    }
+    #[wasm_bindgen]
+    pub async fn update_post(&self, id: i64, title: String, content: String) -> Result<JsValue, JsValue> {
+        let response = self.http_client.update_post(id, &title, &content).await
+            .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
+        Ok(serde_wasm_bindgen::to_value(&response.post)?)
+    }
+
+    #[wasm_bindgen]
+    pub async fn delete_post(&self, id: i64) -> Result<JsValue, JsValue> {
+        let response = self.http_client.delete_post(id).await
+            .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
+        Ok(JsValue::from_str("ok"))
+    }
+
+    #[wasm_bindgen]
+    pub async fn get_post(&self, id: i64) -> Result<JsValue, JsValue> {
+        let response = self.http_client.get_post(id).await
+            .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
+        Ok(serde_wasm_bindgen::to_value(&response.post)?)
+    }
+
+    #[wasm_bindgen]
+    pub async fn list_posts(&self, limit: i64, offset: i64) -> Result<JsValue, JsValue> {
+        let response = self.http_client.list_posts(Some(limit), Some(offset)).await
+            .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
+        Ok(serde_wasm_bindgen::to_value(&response.post)?)
+    }
+
+    #[wasm_bindgen]
+    pub fn logout(&self) -> Result<JsValue, JsValue> {
+        self.http_client.clear_token().map_err(|e| JsValue::from_str(&format!("{}", e)));
+        Ok(JsValue::from_str("Logout successful."))
+    }
 }

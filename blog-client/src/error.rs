@@ -50,8 +50,13 @@ pub enum BlogClientError {
     #[error("Serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
 
+    #[cfg(not(target_arch = "wasm32"))]
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
+
+    #[cfg(target_arch = "wasm32")]
+    #[error("IO error: {0}")]
+    Io(#[from] gloo_storage::errors::StorageError),
 
     #[error("Configuration error: {0}")]
     Config(String),
