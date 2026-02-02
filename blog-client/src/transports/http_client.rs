@@ -3,20 +3,16 @@ use crate::models::models::{
     Response, CreatePostRequest, LoginRequest, RegisterUserRequest, UpdatePostRequest,
 };
 
-use crate::transports::http_helpers::{HttpClientRequest, HttpRequestMethod, HttpRequest};
+use crate::transports::http_helpers::{HttpClientRequest, HttpRequestMethod, HttpRequest, HttpBuilder};
 use serde_json::json;
 use std::sync::Arc;
 use core::time::Duration;
 use tokio::sync::RwLock;
 
-use crate::transports::http_helpers::RequestBuilderExt;
 
 
 pub(crate) struct HttpClient {
-    #[cfg(not(target_arch = "wasm32"))]
-    client: HttpClientRequest<reqwest::Client>,
-    #[cfg(target_arch = "wasm32")]
-    client: HttpClientRequest<gloo_net::http::Request>,
+    client: HttpClientRequest,
     base_url: String,
     token: Arc<RwLock<Option<String>>>,
 }
@@ -59,7 +55,7 @@ impl HttpClient {
 
         // Добавляем тело если нужно
         if let Some(body) = body {
-            request = request.json_request(&body);
+            request = request.json(&body);
         }
 
         let response = request.send().await?;

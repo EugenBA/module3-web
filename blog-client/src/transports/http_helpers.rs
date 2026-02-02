@@ -9,10 +9,19 @@ use std::fmt::Display;
 #[cfg(target_arch = "wasm32")]
 use log::{info, error, warn, debug, trace};
 use core::time::Duration;
+use std::fmt;
+use crate::error::BlogClientError;
 
 pub(crate) trait HttpRequest {
     fn new(timeout: Duration) -> Self;
-    fn request(&self, method: HttpRequestMethod, url: &str) -> RequestBuilder;
+    fn request(&self, method: HttpRequestMethod, url: &str) -> HttpClientRequestBuilder;
+}
+
+pub(crate) trait HttpBuilder{
+    fn json<T: Serialize>(self, data: &T) -> HttpClientRequestBuilder;
+    fn bearer_auth<T:fmt::Display>(self, token: T) -> HttpClientRequestBuilder;
+    async fn send(self) -> Result<Response, BlogClientError>;
+
 }
 #[derive(Clone)]
 pub(crate) enum HttpRequestMethod {
@@ -22,8 +31,11 @@ pub(crate) enum HttpRequestMethod {
     DELETE
 }
 
-pub(crate) struct HttpClientRequest<T>{
-    client: Option<T>,
+pub(crate) struct HttpClientRequest{
+    #[cfg(target_arch = "wasm32")]
+    client: Request,
+    #[cfg(not(target_arch = "wasm32"))]
+    client: Client,
     timeout: Duration
 
 }
@@ -35,64 +47,72 @@ pub(crate) struct HttpClientRequestBuilder {
     request: RequestBuilder
 }
 
-impl HttpClientRequestBuilder{
-    pub async fn send(&self) -> Response {
-        self.send().await?
-    }
-}
 
-
-impl<T> HttpClientRequest<T> {
-    #[cfg(not(target_arch = "wasm32"))]
-    pub(crate) fn status_ok(&self, status: reqwest::StatusCode) -> bool {
-        status.is_success()
+#[cfg(not(target_arch = "wasm32"))]
+impl HttpBuilder for HttpClientRequestBuilder{
+    fn json<T: Serialize>(self, data: &T) -> HttpClientRequestBuilder {
+        let request = self.request.json(data);
+        HttpClientRequestBuilder{
+            request
+        }
     }
-    #[cfg(target_arch = "wasm32")]
-    pub(crate) fn status_ok(&self, status: u16) -> bool {
-        (200..300).contains(&status)
+
+    fn bearer_auth<T>(self, token: T) -> HttpClientRequestBuilder
+        where
+        T: fmt::Display,
+        {
+        Self{
+            request: self.request.bearer_auth(token),
+        }
+    }
+
+    async fn send(self) -> Result<Response, BlogClientError> {
+        Ok(self.request.send().await?)
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl HttpRequest for HttpClientRequest<Client> {
+impl HttpRequest for HttpClientRequest {
     fn new(timeout: Duration) -> Self {
-        Self {client: Some(Client::builder()
+        Self {client: Client::builder()
             .user_agent(format!("blog-client/{}", env!("CARGO_PKG_VERSION")))
             .timeout(timeout)
-            .build().expect("Failed to create client")),
+            .build().expect("Failed to create client"),
             timeout
         }
 
     }
-
-    fn request(&self, method: HttpRequestMethod, url: &str) -> RequestBuilder {
+    fn request(&self, method: HttpRequestMethod, url: &str) -> HttpClientRequestBuilder {
         let method_req = match method {
             HttpRequestMethod::GET => { Method::GET }
             HttpRequestMethod::POST => { Method::POST }
             HttpRequestMethod::PUT => { Method::PUT }
             HttpRequestMethod::DELETE => { Method::DELETE }
         };
-        self.client.clone().expect("Not client").request(method_req, url)
+        let request = self.client.clone().request(method_req, url);
+        HttpClientRequestBuilder{
+            request,
+        }
     }
 }
 
+
 #[cfg(target_arch = "wasm32")]
-impl HttpRequest for HttpClientRequest<Request> {
+impl HttpRequest for HttpClientRequest{
     fn new(timeout: Duration) -> Self {
-        wasm_logger::init(wasm_logger::Config::new(log::Level::Trace));
         Self {
-            client: None,
+            client: Request::default(),
             timeout
         }
     }
-
-    fn request(&self, method: HttpRequestMethod, url: &str) -> RequestBuilder {
+    fn request(&self, method: HttpRequestMethod, url: &str) -> HttpClientRequestBuilder {
         let user_agent = format!("blog-client/{}", env!("CARGO_PKG_VERSION"));
-         match method {
+        let request = match method {
             HttpRequestMethod::GET => {
                 Request::get(url).header(
                     "User-Agent",
                     user_agent.as_str(),
+
                 )
             }
             HttpRequestMethod::POST => {
@@ -107,49 +127,52 @@ impl HttpRequest for HttpClientRequest<Request> {
                     user_agent.as_str(),
                 )
             }
-             HttpRequestMethod::DELETE => {
-                 Request::delete(url).header(
-                     "User-Agent",
-                     user_agent.as_str(),
-                 )}
+            HttpRequestMethod::DELETE => {
+                Request::delete(url).header(
+                    "User-Agent",
+                    user_agent.as_str(),
+                )}
+        };
+        HttpClientRequestBuilder{
+            request
         }
     }
 }
-#[cfg(target_arch = "wasm32")]
-pub(crate) trait RequestBuilderExt {
-    fn bearer_auth<T:Display>(self, token: T) -> Self;
-    fn json_request<T: Serialize>(self, data: &T) -> HttpClientRequestBuilder;
-}
-#[cfg(target_arch = "wasm32")]
-impl RequestBuilderExt for gloo_net::http::RequestBuilder {
-    fn bearer_auth<T:Display>(mut self, token: T) -> Self {
-        self = self.header("Authorization", &format!("Bearer {token}"));
-        self
-    }
 
-    fn json_request<T: Serialize>(mut self, data: &T) -> HttpClientRequestBuilder {
-        trace!("Json create: {}", data);
+#[cfg(target_arch = "wasm32")]
+impl HttpBuilder for HttpClientRequestBuilder{
+    fn json<T: Serialize>(self, data: &T) -> HttpClientRequestBuilder {
         let user_agent = format!("blog-client/{}", env!("CARGO_PKG_VERSION"));
-        self = self.header("Content-Type", "application/json")
-                       .header("User-Agent", user_agent.as_str());
-        trace!("RB: {:?}", self);
-        let req = self.json(data).except("error blog client json data");
+        self = self.request.header("User-Agent", user_agent.as_str());
+        let request = self.json(data).except("error blog client json data");
         HttpClientRequestBuilder{
-            request: self
+            request
         }
+    }
+
+    fn bearer_auth<T>(self, token: T) -> HttpClientRequestBuilder
+    where
+        T: fmt::Display,
+    {
+        let request = self.request.header("Authorization", &format!("Bearer {token}"));
+        Self{
+            request
+        }
+    }
+
+    async fn send(self) -> Result<Response, BlogClientError> {
+        Ok(self.request.send().await?)
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-pub(crate) trait RequestBuilderExt {
-    fn json_request<T: Serialize>(self, data: &T) -> HttpClientRequestBuilder;
-}
 
-#[cfg(not(target_arch = "wasm32"))]
-impl RequestBuilderExt for RequestBuilder {
-    fn json_request<T: Serialize>(self, data: &T) -> HttpClientRequestBuilder {
-        HttpClientRequestBuilder{
-            request: self.json(data)
-        }
+impl HttpClientRequest {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn status_ok(&self, status: reqwest::StatusCode) -> bool {
+        status.is_success()
+    }
+    #[cfg(target_arch = "wasm32")]
+    pub(crate) fn status_ok(&self, status: u16) -> bool {
+        (200..300).contains(&status)
     }
 }
