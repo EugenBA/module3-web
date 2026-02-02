@@ -110,7 +110,7 @@ impl<R: BlogRepository, S: UserRepository> ProtoBlogService for BlogGrpcService<
         };
 
         match self.auth_service.register(register_user).await {
-            Ok(token) => {
+            Ok((_, token)) => {
                 let response = TokenResponse {
                     token,
                     username: req.username,
@@ -137,7 +137,7 @@ impl<R: BlogRepository, S: UserRepository> ProtoBlogService for BlogGrpcService<
         };
 
         match self.auth_service.login(login_user).await {
-            Ok(token) => {
+            Ok((_, token)) => {
                 let response = TokenResponse {
                     username: req.username,
                     token,

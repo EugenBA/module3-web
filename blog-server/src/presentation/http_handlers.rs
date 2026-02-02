@@ -126,7 +126,7 @@ pub(crate) async fn register(
     auth: web::Data<AuthService<InDbUserRepository>>,
     payload: web::Json<RegisterUser>,
 ) -> Result<HttpResponse, BlogError> {
-    let jwt = auth.register(payload.clone()).await?;
+    let (id, token) = auth.register(payload.clone()).await?;
     info!(
         request_id = %request_id(&req),
         username = %payload.username,
@@ -134,8 +134,9 @@ pub(crate) async fn register(
         "register user"
     );
     Ok(HttpResponse::Ok().json(TokenResponse {
-        token: jwt,
+        token,
         user: payload.username.clone(),
+        id
     }))
 }
 
@@ -145,15 +146,16 @@ pub(crate) async fn login(
     auth: web::Data<AuthService<InDbUserRepository>>,
     payload: web::Json<LoginUser>,
 ) -> Result<HttpResponse, BlogError> {
-    let jwt = auth.login(payload.clone()).await?;
+    let (id, token) = auth.login(payload.clone()).await?;
     info!(
         request_id = %request_id(&req),
         username= payload.username,
         "login user"
     );
     Ok(HttpResponse::Ok().json(TokenResponse {
-        token: jwt,
+        token,
         user: payload.username.clone(),
+        id
     }))
 }
 

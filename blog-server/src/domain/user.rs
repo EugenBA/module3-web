@@ -25,6 +25,7 @@ pub(crate) struct LoginUser {
 pub(crate) struct TokenResponse {
     pub(crate) token: String,
     pub(crate) user: String,
+    pub(crate) id: i64,
 }
 
 impl User {
