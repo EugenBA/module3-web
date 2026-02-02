@@ -83,14 +83,12 @@ impl BlogClient {
     }
 
     pub async fn set_token(&self, token: Option<String>) {
-        if cfg!(target_arch = "wasm32") {
-            *self.token.write().await = token.clone();
-        } else {
-            *self.token.write().await = token.clone();
-        }
-
+        *self.token.write().await = token.clone();
         if let Some(http_client) = &self.http_client {
             http_client.set_token(token.clone()).await;
+            if let Some(token) = token {
+                let _ = self.save_token(&token);
+            }
         }
         #[cfg(not(target_arch = "wasm32"))]
         if let Some(grpc_client) = &self.grpc_client {
@@ -119,6 +117,8 @@ impl BlogClient {
             } => {
                 let response = client.register(username, email, password).await?;
                 self.set_token(Some(response.token.clone())).await;
+                #[cfg(target_arch = "wasm32")]
+                self.save_username(username);
                 Ok(response)
             }
             #[cfg(not(target_arch = "wasm32"))]
@@ -142,6 +142,8 @@ impl BlogClient {
             } => {
                 let response = client.login(username, password).await?;
                 self.set_token(Some(response.token.clone())).await;
+                #[cfg(target_arch = "wasm32")]
+                self.save_username(username);
                 Ok(response)
             }
             #[cfg(not(target_arch = "wasm32"))]
@@ -279,6 +281,11 @@ impl BlogClient {
             Ok(())
         }
     }
+    #[cfg(target_arch = "wasm32")]
+    pub fn save_username(&self, username: &str) -> Result<(), BlogClientError> {
+        LocalStorage::set("blog_username", username)?;
+        Ok(())
+    }
 
     pub fn clear_token(&self) -> Result<(), BlogClientError> {
         #[cfg(not(target_arch = "wasm32"))]
@@ -292,8 +299,14 @@ impl BlogClient {
         #[cfg(target_arch = "wasm32")]
         {
             LocalStorage::delete("blog_token");
+            LocalStorage::delete("blog_username");
         }
         Ok(())
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn username(&self) -> Option<String> {
+        LocalStorage::get("blog_username").ok()
     }
 }
 

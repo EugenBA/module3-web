@@ -4,6 +4,7 @@ use blog_client::clients::client::{BlogClient, Transport};
 use blog_client::models::models::User;
 
 use core::time::Duration;
+use std::io::empty;
 
 // Указываем, что эту функцию можно вызывать из JS
 #[wasm_bindgen]
@@ -28,8 +29,8 @@ impl WasmBlogClient {
         Ok(Self { http_client })
     }
     #[wasm_bindgen]
-    pub async fn register(&self, username: String, password: String) -> Result<JsValue, JsValue> {
-        let response = self.http_client.login(&username, &password).await
+    pub async fn register(&self, username: String, email: String, password: String) -> Result<JsValue, JsValue> {
+        let response = self.http_client.register(&username, &email, &password).await
             .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
         Ok(JsValue::from_str(&response.token))
     }
@@ -87,13 +88,8 @@ impl WasmBlogClient {
 
     #[wasm_bindgen]
     pub fn get_current_user(&self) -> Result<JsValue, JsValue> {
-        let user = User{
-            id: 0,
-            username: "".to_string(),
-            email: "".to_string(),
-            created_at: Default::default(),
-        };
-        Ok(serde_wasm_bindgen::to_value(&user)?)
+       let username = self.http_client.username().unwrap_or_else(|| "".to_string());
+        Ok(JsValue::from_str(&username))
     }
 }
 #[wasm_bindgen]

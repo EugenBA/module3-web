@@ -31,16 +31,15 @@
 
     async function update_ui() {
         const isAuthenticated = await client.is_authenticated();
-        const currentUser = client.get_current_user();
-
+        const currentUser =  client.get_current_user();
         let html = `
                 <header>
                     <h1>Blog Client</h1>
                     <div class="auth-status">
             `;
 
-        if (isAuthenticated && currentUser && currentUser.username) {
-            html += `<span>Logged in as: ${currentUser.username}</span>
+        if (isAuthenticated && currentUser !== "") {
+            html += `<span>Logged in as: ${currentUser}</span>
                          <button onclick="logout()">Logout</button>`;
         } else {
             html += `<span>Not logged in</span>`;

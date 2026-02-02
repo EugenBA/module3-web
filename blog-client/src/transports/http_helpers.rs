@@ -1,8 +1,8 @@
-use std::error::Error;
+
 #[cfg(not(target_arch = "wasm32"))]
 use reqwest::{Method, RequestBuilder, Client, Response};
 #[cfg(target_arch = "wasm32")]
-use gloo_net::http::{Request, RequestBuilder, Response};
+use gloo_net::http::{Request, RequestBuilder, Response, Method};
 use serde::Serialize;
 #[cfg(target_arch = "wasm32")]
 use std::fmt::Display;
@@ -28,12 +28,12 @@ pub(crate) enum HttpRequestMethod {
     GET,
     POST,
     PUT,
-    DELETE
+    DELETE,
 }
 
 pub(crate) struct HttpClientRequest{
     #[cfg(target_arch = "wasm32")]
-    client: Request,
+    client: RequestBuilder,
     #[cfg(not(target_arch = "wasm32"))]
     client: Client,
     timeout: Duration
@@ -43,6 +43,10 @@ pub(crate) struct HttpClientRequest{
 pub(crate) struct HttpClientRequestBuilder {
     #[cfg(target_arch = "wasm32")]
     request: Request,
+    #[cfg(target_arch = "wasm32")]
+    method: Option<HttpRequestMethod>,
+    #[cfg(target_arch = "wasm32")]
+    url: String,
     #[cfg(not(target_arch = "wasm32"))]
     request: RequestBuilder
 }
@@ -100,14 +104,15 @@ impl HttpRequest for HttpClientRequest {
 #[cfg(target_arch = "wasm32")]
 impl HttpRequest for HttpClientRequest{
     fn new(timeout: Duration) -> Self {
+        let user_agent = format!("blog-client/{}", env!("CARGO_PKG_VERSION"));
         Self {
-            client: Request::default(),
+            client: RequestBuilder::new("/"),
             timeout
         }
     }
     fn request(&self, method: HttpRequestMethod, url: &str) -> HttpClientRequestBuilder {
         let user_agent = format!("blog-client/{}", env!("CARGO_PKG_VERSION"));
-        let request = match method {
+        let request_builder = match method {
             HttpRequestMethod::GET => {
                 Request::get(url).header(
                     "User-Agent",
@@ -133,8 +138,13 @@ impl HttpRequest for HttpClientRequest{
                     user_agent.as_str(),
                 )}
         };
+        let request = Request::try_from(request_builder).expect(
+            "Failed to create request builder"
+        );
         HttpClientRequestBuilder{
-            request
+            request,
+            method: Some(method),
+            url: url.to_string(),
         }
     }
 }
@@ -142,26 +152,49 @@ impl HttpRequest for HttpClientRequest{
 #[cfg(target_arch = "wasm32")]
 impl HttpBuilder for HttpClientRequestBuilder{
     fn json<T: Serialize>(self, data: &T) -> HttpClientRequestBuilder {
-        let user_agent = format!("blog-client/{}", env!("CARGO_PKG_VERSION"));
-        self = self.request.header("User-Agent", user_agent.as_str());
-        let request = self.json(data).except("error blog client json data");
-        HttpClientRequestBuilder{
-            request
+        if let Some(method) = self.method {
+            let request_builder = RequestBuilder::new(self.url.as_str())
+                .method(Method::from(method.clone()));
+            return HttpClientRequestBuilder{
+                request: request_builder.json(data).expect("Failed to create request builder"),
+                method: Some(method),
+                url: self.url,
+            }
         }
+        self
     }
 
     fn bearer_auth<T>(self, token: T) -> HttpClientRequestBuilder
     where
         T: fmt::Display,
     {
-        let request = self.request.header("Authorization", &format!("Bearer {token}"));
-        Self{
-            request
+        if let Some(method) = self.method {
+            let request_builder = RequestBuilder::new(self.url.as_str())
+                .method(Method::from(method.clone()))
+                .header("Authorization", &format!("Bearer {token}"));
+            return HttpClientRequestBuilder{
+                request: Request::try_from(request_builder).expect("Failed to create request builder"),
+                method: Some(method),
+                url: self.url,
+            }
         }
+        self
     }
 
     async fn send(self) -> Result<Response, BlogClientError> {
         Ok(self.request.send().await?)
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl From<HttpRequestMethod>  for Method{
+    fn from(value: HttpRequestMethod) -> Self {
+        match value{
+            HttpRequestMethod::GET => Method::GET,
+            HttpRequestMethod::POST => Method::POST,
+            HttpRequestMethod::PUT => Method::PUT,
+            HttpRequestMethod::DELETE => Method::DELETE,
+        }
     }
 }
 
