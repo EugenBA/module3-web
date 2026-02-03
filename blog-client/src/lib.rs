@@ -1,4 +1,5 @@
 #![warn(missing_docs)]
+
 pub mod clients;
 pub mod error;
 mod transports;
