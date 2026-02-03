@@ -38,7 +38,7 @@ impl WasmBlogClient {
     pub async fn login(&self, username: String, password: String) -> Result<JsValue, JsValue> {
         let response = self.http_client.login(&username, &password).await
             .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
-        Ok(JsValue::from_str(&response.token))
+        Ok(serde_wasm_bindgen::to_value(&response)?)
     }
 
     #[wasm_bindgen]

@@ -32,6 +32,8 @@
     async function update_ui() {
         const isAuthenticated = await client.is_authenticated();
         const currentUser =  client.get_current_user();
+        console.log(isAuthenticated)
+        console.log(currentUser)
         let html = `
                 <header>
                     <h1>Blog Client</h1>
@@ -142,7 +144,8 @@
         }
 
         try {
-            await client.login(username, password);
+            const login = await client.login(username, password);
+            console.log(login);
             await update_ui();
             await load_posts();
             clear_error();
