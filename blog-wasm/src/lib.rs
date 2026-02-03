@@ -1,10 +1,9 @@
 
 use wasm_bindgen::prelude::*;
 use blog_client::clients::client::{BlogClient, Transport};
-use blog_client::models::models::User;
-
+use blog_client::models::models::StorageUser;
 use core::time::Duration;
-use std::io::empty;
+use log::{info, error, warn, debug, trace};
 
 // Указываем, что эту функцию можно вызывать из JS
 #[wasm_bindgen]
@@ -23,21 +22,23 @@ impl WasmBlogClient {
     pub async fn new(url: String, timeout_sec: i32) -> Result<Self, JsValue> {
         let transport = Transport::http(url);
         let timeout = Duration::from_secs(timeout_sec as u64);
-
         let http_client = BlogClient::new(transport, timeout)
             .await.map_err(|e| JsValue::from_str(&format!("{}", e)))?;
+        wasm_logger::init(wasm_logger::Config::new(log::Level::Trace));
         Ok(Self { http_client })
     }
     #[wasm_bindgen]
     pub async fn register(&self, username: String, email: String, password: String) -> Result<JsValue, JsValue> {
         let response = self.http_client.register(&username, &email, &password).await
             .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
-        Ok(JsValue::from_str(&response.token))
+        Ok(serde_wasm_bindgen::to_value(&response.token)?)
     }
     #[wasm_bindgen]
     pub async fn login(&self, username: String, password: String) -> Result<JsValue, JsValue> {
+        trace!("login called with username: {}, password: {}", username, password);
         let response = self.http_client.login(&username, &password).await
             .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
+        trace!("{:?}", response);
         Ok(serde_wasm_bindgen::to_value(&response)?)
     }
 
@@ -45,13 +46,13 @@ impl WasmBlogClient {
     pub async fn create_post(&self, title: String, content: String) -> Result<JsValue, JsValue> {
         let response = self.http_client.create_post(&title, &content).await
             .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
-        Ok(serde_wasm_bindgen::to_value(&response.post)?)
+        Ok(serde_wasm_bindgen::to_value(&response.posts)?)
     }
     #[wasm_bindgen]
     pub async fn update_post(&self, id: i64, title: String, content: String) -> Result<JsValue, JsValue> {
         let response = self.http_client.update_post(id, &title, &content).await
             .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
-        Ok(serde_wasm_bindgen::to_value(&response.post)?)
+        Ok(serde_wasm_bindgen::to_value(&response.posts)?)
     }
 
     #[wasm_bindgen]
@@ -65,14 +66,14 @@ impl WasmBlogClient {
     pub async fn get_post(&self, id: i64) -> Result<JsValue, JsValue> {
         let response = self.http_client.get_post(id).await
             .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
-        Ok(serde_wasm_bindgen::to_value(&response.post)?)
+        Ok(serde_wasm_bindgen::to_value(&response.posts)?)
     }
 
     #[wasm_bindgen]
     pub async fn list_posts(&self, limit: i64, offset: i64) -> Result<JsValue, JsValue> {
         let response = self.http_client.list_posts(Some(limit), Some(offset)).await
             .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
-        Ok(serde_wasm_bindgen::to_value(&response.post)?)
+        Ok(serde_wasm_bindgen::to_value(&response.posts)?)
     }
 
     #[wasm_bindgen]
@@ -88,8 +89,11 @@ impl WasmBlogClient {
 
     #[wasm_bindgen]
     pub fn get_current_user(&self) -> Result<JsValue, JsValue> {
-       let username = self.http_client.username().unwrap_or_else(|| "".to_string());
-        Ok(JsValue::from_str(&username))
+       let user = self.http_client.get_user().unwrap_or_else(|| StorageUser{
+           id: -1,
+           username: "".to_string()
+       });
+        Ok(serde_wasm_bindgen::to_value(&user)?)
     }
 }
 #[wasm_bindgen]

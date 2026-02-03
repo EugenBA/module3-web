@@ -1,4 +1,4 @@
-use crate::models::models::Response;
+use crate::models::models::{Response};
 use crate::{error::BlogClientError, transports::http_client::HttpClient};
 use core::time::Duration;
 use std::sync::Arc;
@@ -6,12 +6,15 @@ use tokio::sync::RwLock;
 
 #[cfg(not(target_arch = "wasm32"))]
 use crate::transports::grpc_client::grpc_client::GrpcClient;
-#[cfg(target_arch = "wasm32")]
-use gloo_storage::{LocalStorage, Storage};
 #[cfg(not(target_arch = "wasm32"))]
 use std::fs;
 #[cfg(not(target_arch = "wasm32"))]
 use std::path::Path;
+
+#[cfg(target_arch = "wasm32")]
+use gloo_storage::{LocalStorage, Storage};
+#[cfg(target_arch = "wasm32")]
+use crate::models::models::StorageUser;
 
 #[derive(Debug, Clone)]
 pub enum Transport {
@@ -86,7 +89,7 @@ impl BlogClient {
         *self.token.write().await = token.clone();
         if let Some(http_client) = &self.http_client {
             http_client.set_token(token.clone()).await;
-            if let Some(token) = token {
+            if let Some(token) = token.clone() {
                 let _ = self.save_token(&token);
             }
         }
@@ -116,9 +119,14 @@ impl BlogClient {
                 ..
             } => {
                 let response = client.register(username, email, password).await?;
-                self.set_token(Some(response.token.clone())).await;
+                self.set_token(response.token.clone()).await;
                 #[cfg(target_arch = "wasm32")]
-                self.save_username(username);
+                if let Some(id) = response.id {
+                    self.save_username(StorageUser {
+                        id,
+                        username: username.to_string(),
+                    })?;
+                }
                 Ok(response)
             }
             #[cfg(not(target_arch = "wasm32"))]
@@ -141,9 +149,14 @@ impl BlogClient {
                 ..
             } => {
                 let response = client.login(username, password).await?;
-                self.set_token(Some(response.token.clone())).await;
+                self.set_token(response.token.clone()).await;
                 #[cfg(target_arch = "wasm32")]
-                self.save_username(username);
+                if let Some(id) = response.id {
+                    self.save_username(StorageUser {
+                        id,
+                        username: username.to_string(),
+                    })?;
+                }
                 Ok(response)
             }
             #[cfg(not(target_arch = "wasm32"))]
@@ -282,8 +295,8 @@ impl BlogClient {
         }
     }
     #[cfg(target_arch = "wasm32")]
-    pub fn save_username(&self, username: &str) -> Result<(), BlogClientError> {
-        LocalStorage::set("blog_username", username)?;
+    pub fn save_username(&self, user: StorageUser) -> Result<(), BlogClientError> {
+        LocalStorage::set("blog_username", &user)?;
         Ok(())
     }
 
@@ -305,7 +318,7 @@ impl BlogClient {
     }
 
     #[cfg(target_arch = "wasm32")]
-    pub fn username(&self) -> Option<String> {
+    pub fn get_user(&self) -> Option<StorageUser> {
         LocalStorage::get("blog_username").ok()
     }
 }

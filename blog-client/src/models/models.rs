@@ -52,9 +52,10 @@ impl From<ProtoPost> for Post{
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Response {
-    pub post: Option<Vec<Post>>,
-    pub username: String,
-    pub token: String,
+    pub posts: Option<Vec<Post>>,
+    pub id: Option<i64>,
+    pub user: Option<String>,
+    pub token: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -96,4 +97,11 @@ pub struct ListPostsRequest {
     pub offset: Option<i64>,
     pub limit: Option<i64>,
     pub author_id: Option<String>,
+}
+
+#[cfg(target_arch = "wasm32")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StorageUser {
+    pub id: i64,
+    pub username: String,
 }

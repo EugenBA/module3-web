@@ -5,9 +5,6 @@ use reqwest::{Method, RequestBuilder, Client, Response};
 use gloo_net::http::{Request, RequestBuilder, Response, Method};
 use serde::Serialize;
 #[cfg(target_arch = "wasm32")]
-use std::fmt::Display;
-#[cfg(target_arch = "wasm32")]
-use log::{info, error, warn, debug, trace};
 use core::time::Duration;
 use std::fmt;
 use crate::error::BlogClientError;
@@ -111,32 +108,33 @@ impl HttpRequest for HttpClientRequest{
         }
     }
     fn request(&self, method: HttpRequestMethod, url: &str) -> HttpClientRequestBuilder {
-        let user_agent = format!("blog-client/{}", env!("CARGO_PKG_VERSION"));
+      //  let user_agent = format!("blog-client/{}", env!("CARGO_PKG_VERSION"));
         let request_builder = match method {
             HttpRequestMethod::GET => {
-                Request::get(url).header(
-                    "User-Agent",
-                    user_agent.as_str(),
+                Request::get(url)//.header(
+                    //"User-Agent",
+                  //  user_agent.as_str(),
 
-                )
+               // )
             }
             HttpRequestMethod::POST => {
-                Request::post(url).header(
-                    "User-Agent",
-                    user_agent.as_str(),
-                )
+                Request::post(url)//.header(
+                   // "User-Agent",
+                  //  user_agent.as_str(),
+              //  )
             }
             HttpRequestMethod::PUT => {
-                Request::put(url).header(
-                    "User-Agent",
-                    user_agent.as_str(),
-                )
+                Request::put(url)//.header(
+                   // "User-Agent",
+                   // user_agent.as_str(),
+               // )
             }
             HttpRequestMethod::DELETE => {
-                Request::delete(url).header(
-                    "User-Agent",
-                    user_agent.as_str(),
-                )}
+                Request::delete(url)//.header(
+                 //   "User-Agent",
+                  //  user_agent.as_str(),
+                //)
+            }
         };
         let request = Request::try_from(request_builder).expect(
             "Failed to create request builder"

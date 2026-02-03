@@ -25,23 +25,21 @@
         client = await new WasmBlogClient("http://localhost:3000", 30);
         // Проверяем аутентификацию и загружаем посты
         await update_ui();
-        await load_posts();
+        await load_posts(10n, 0n);
     }
 
 
     async function update_ui() {
         const isAuthenticated = await client.is_authenticated();
         const currentUser =  client.get_current_user();
-        console.log(isAuthenticated)
-        console.log(currentUser)
         let html = `
                 <header>
                     <h1>Blog Client</h1>
                     <div class="auth-status">
             `;
 
-        if (isAuthenticated && currentUser !== "") {
-            html += `<span>Logged in as: ${currentUser}</span>
+        if (isAuthenticated && currentUser && currentUser.id !== -1) {
+            html += `<span id="user" data-id="${currentUser.id}">Logged in as: ${currentUser.username}</span>
                          <button onclick="logout()">Logout</button>`;
         } else {
             html += `<span>Not logged in</span>`;
@@ -91,9 +89,11 @@
         document.getElementById('content').innerHTML = html;
     }
 
-    async function load_posts() {
+    async function load_posts(limit = 10n, offset = 0n) {
         try {
-            const posts = await client.list_posts();
+            console.log('Loading posts...');
+            const posts = await client.list_posts(limit, offset);
+            console.log(posts);
             render_posts(posts);
         } catch (error) {
             show_error(error);
@@ -145,7 +145,6 @@
 
         try {
             const login = await client.login(username, password);
-            console.log(login);
             await update_ui();
             await load_posts();
             clear_error();

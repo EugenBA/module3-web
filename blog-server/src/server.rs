@@ -146,7 +146,7 @@ async fn start_grpc_server(
 
 fn build_cors(config: &AppConfig) -> Cors {
     let mut cors = Cors::default()
-        .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
+        .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
         .allowed_headers(vec![
             actix_web::http::header::CONTENT_TYPE,
             actix_web::http::header::AUTHORIZATION,

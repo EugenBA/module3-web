@@ -473,7 +473,6 @@ dependencies = [
  "chrono",
  "gloo-net",
  "gloo-storage",
- "log",
  "prost",
  "prost-types",
  "reqwest",
@@ -484,7 +483,6 @@ dependencies = [
  "tonic",
  "tonic-prost",
  "tonic-prost-build",
- "wasm-logger",
 ]
 
 [[package]]
@@ -522,9 +520,11 @@ dependencies = [
  "blog-client",
  "console_error_panic_hook",
  "js-sys",
+ "log",
  "serde-wasm-bindgen",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+ "wasm-logger",
  "web-sys",
 ]
 
