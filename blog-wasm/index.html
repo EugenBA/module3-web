@@ -20,6 +20,12 @@
             font-size: inherit;
             line-height: inherit;
         }
+        .width-full{
+            width: 100%;
+        }
+        .width-70{
+            width: 70%;
+        }
         .hide{
             visibility: collapse;
         }
@@ -68,10 +74,6 @@
             background-color: #333030;
             width: 100%;
         }
-        .post{
-            display: flex;
-            width: 100%;
-        }
         .post-content{
             width: 100%;
         }
@@ -81,13 +83,14 @@
         .post-content:nth-child(even){
             background-color: #9eb8b8;
         }
-        .post-created{
+        .post-created, .post-actions{
             padding-left: 10px;
             background-color: #b6b6b6;
         }
         .title{
             padding: 10px;
             font-style: italic;
+            font-weight: bold;
             width: 28%;
             border-left: #b6b6b6 1px;
             border-bottom: #b6b6b6 1px;
@@ -97,6 +100,30 @@
             padding-top: 5px;
             padding-bottom: 5px;
             width: 70%;
+        }
+        .padding-separator{
+            height: 20px;
+        }
+        .post-editor{
+            position: absolute;
+            top: 60%;
+            left: 20%;
+            margin-right: -50%;
+            width: 80%;
+        }
+        .flex{
+            display: flex;
+        }
+        .input-editor-title{
+            width: 80%;
+            padding-left: 30px;
+            padding-top: 5px;
+        }
+        .input-editor-content{
+            width: 80%;
+            height: 60%;
+            padding-left: 30px;
+            padding-top: 15px;
         }
         #logged, #unlogged{
             float: right;
@@ -158,6 +185,7 @@
         const isAuthenticated = await client.is_authenticated();
         const currentUser =  client.get_current_user();
         console.log("current user", currentUser);
+        console.log("authenticate", isAuthenticated);
         let html = `
                 <header>
                     <div class="caption">
@@ -170,7 +198,7 @@
             html += `<div id="logged">
                          <div class="nav-block"></div>
                          <div class="user_name">
-                            <span>Logged in as: ${currentUser.username}</span>
+                            <span>Logged in as: <b>${currentUser.username}</b></span>
                             <button onclick="logout()">Logout</button>
                             <div class="hide">${currentUser.id}</div>
                          </div>
@@ -214,21 +242,46 @@
                     </div>
                     <div class="separator"></div>
                 `;
-        } else {
-            html += `
-                    <div class="create-post-form">
-                        <h2>Create New Post</h2>
-                        <form onsubmit="handleCreatePost(event)">
-                            <input type="text" id="post-title" placeholder="Title" required>
-                            <textarea id="post-content" placeholder="Content" required></textarea>
-                            <button type="submit">Create Post</button>
-                        </form>
+        }
+        html += `<div id="posts-container"></div>
+                     <div id="error-container"></div>`;
+        if (isAuthenticated)  {
+            html += `<div class="padding-separator width-full"></div>
+                    <div class="width-full">
+                        <div class="separator"></div>
+                          <div class="caption_post"><b>Create New Post</b></div>
+                        <div class="separator"></div>
+                        <div class="padding-separator"></div>
+                        <div class="width-full">
+                        <div class="post-editor">
+                        <form class="width-full" onsubmit="handleCreatePost(event)">
+                            <div>Title</div>
+                            <div>
+                                <input class="input-editor-title" type="text" id="post-title" placeholder="Title" required>
+                            </div>
+                            <div>Content</div>
+                            <div>
+                                <textarea class="input-editor-content" id="post-content" placeholder="Content" required></textarea>
+                            </div>
+                            <input id="post-id" type="text" class="hide">
+                            <div class="flex">
+                                <div class="width-70"></div>
+                                <div id="ct_create">
+                                    <button type="submit">Create Post</button>
+                                </div>
+                                <div id="ct_update" class="hide">
+                                  <button type="button" onclick="">Update post</button>
+                                  <button type="button" onclick="">Cancel</button>
+                                </div>
+                            </div>
+                            </form>
+                            </div>
+                        </div>
                     </div>
                 `;
         }
 
-        html += `<div id="posts-container"></div>
-                     <div id="error-container"></div>`;
+
 
         document.getElementById('content').innerHTML = html;
     }
@@ -252,23 +305,23 @@
 
         if (posts && posts.length > 0) {
             posts.forEach(post => {
-                html += `<div class="post" data-id="${post.id}">
+                html += `<div class="width-full flex" data-id="${post.id}">
                             <div class="post-created">Created: ${post.created_at}</div>
                             <div class="post-content">
-                                <div class="title">${post.title}</div>
-                                <div class="content">${post.content}</div>
+                                <div id="t_${post.id}" class="title">${post.title}</div>
+                                <div id="c_${post.id}" class="content">${post.content}</div>
                             </div>`;
 
-               if (isAuthenticated) {
+               if (isAuthenticated /*&& post.author_id === currentUser.id*/) {
                    html += `<div class="post-actions">
-                                        <button onclick="editPost(${post.id}, '${post.title}', '${post.content}')">Edit</button>
+                                        <button onclick="editPost(${post.id})">Edit</button>
                                          <button onclick="deletePost(${post.id})">Delete</button>
                             </div>`;
                }
                 html += '</div><div class="separator"></div>';
             });
         } else {
-            html += '<p>No posts yet.</p>';
+            html += '<div class="caption_post">No post list</div><div class="separator">';
         }
 
         html += '</div>';
@@ -326,6 +379,15 @@
         load_posts();
     };
 
+    window.show = function show(obj){
+        obj.classList.remove("hide");
+        obj.classList.add("show");
+    }
+    window.hide = function hide(obj){
+        obj.classList.remove("show");
+        obj.classList.add("hide");
+    }
+
     window.handleCreatePost = async function(event) {
         event.preventDefault();
 
@@ -348,25 +410,29 @@
         }
     };
 
-    window.editPost = async function(id, currentTitle, currentContent) {
-        const newTitle = prompt("Enter new title:", currentTitle);
-        if (newTitle === null) return;
+    window.editPost = async function(id) {
+        const title = document.getElementById("t_" + id);
+        const content = document.getElementById("c_" + id);
 
-        const newContent = prompt("Enter new content:", currentContent);
-        if (newContent === null) return;
+        const editor_title = document.getElementById("post-title");
+        const editor_content = document.getElementById("post-content");
+        const editor_id = document.getElementById("post-id");
+        editor_title.value = title.textContent;
+        editor_content.value = content.textContent;
+        editor_id.text = id;
 
-        if (!newTitle || !newContent) {
-            show_error("Title and content are required");
-            return;
-        }
+        const bt_create = document.getElementById("ct_create");
+        const bt_update = document.getElementById("ct_update");
+        hide(bt_create);
+        show(bt_update);
 
-        try {
+       /* try {
             await client.update_post(id, newTitle, newContent);
             await load_posts();
             clear_error();
         } catch (error) {
             show_error(error);
-        }
+        }*/
     };
 
     window.deletePost = async function(id) {
