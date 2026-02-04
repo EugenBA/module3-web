@@ -24,6 +24,7 @@ impl WasmBlogClient {
         let timeout = Duration::from_secs(timeout_sec as u64);
         let http_client = BlogClient::new(transport, timeout)
             .await.map_err(|e| JsValue::from_str(&format!("{}", e)))?;
+        let _ = http_client.load_token().await;
         wasm_logger::init(wasm_logger::Config::new(log::Level::Trace));
         Ok(Self { http_client })
     }
@@ -83,8 +84,8 @@ impl WasmBlogClient {
     }
 
     #[wasm_bindgen]
-    pub async fn is_authenticated(&self) -> bool {
-        self.http_client.get_token().await.is_some()
+    pub fn is_authenticated(&self) -> bool {
+        self.http_client.get_user().is_some()
     }
 
     #[wasm_bindgen]

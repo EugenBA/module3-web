@@ -105,8 +105,8 @@
             height: 20px;
         }
         .post-editor{
-            position: absolute;
-            top: 60%;
+            /*position: absolute;*/
+            top: 1%;
             left: 20%;
             margin-right: -50%;
             width: 80%;
@@ -141,48 +141,25 @@
 <div id="app">
     <div id="content"></div>
 </div>
-<script type="text/javascript">
-    function show(obj){
-        obj.classList.remove("hide");
-        obj.classList.add("show");
-    }
-    function hide(obj){
-        obj.classList.remove("show");
-        obj.classList.add("hide");
-    }
-    function show_login(){
-        const login = document.getElementById("login");
-        const register = document.getElementById("register");
-        show(login);
-        hide(register);
-    }
-    function show_register(){
-        const login = document.getElementById("login");
-        const register = document.getElementById("register");
-        show(register);
-        hide(login);
-    }
-</script>
 
 <script type="module">
     import init, { WasmBlogClient, set_panic_hook } from './pkg/blog_wasm.js';
-
     let client = null;
 
     async function initialize() {
         await init();
         set_panic_hook();
-        const offset=10n;
-        const limit=0n
+        const offset=0n;
+        const limit=10n;
         client = await new WasmBlogClient("http://localhost:3000", 30);
         // Проверяем аутентификацию и загружаем посты
         await update_ui();
-        await load_posts(offset, limit);
+        await load_posts(limit, offset);
     }
 
 
     async function update_ui() {
-        const isAuthenticated = await client.is_authenticated();
+        const isAuthenticated = client.is_authenticated();
         const currentUser =  client.get_current_user();
         console.log("current user", currentUser);
         console.log("authenticate", isAuthenticated);
@@ -270,8 +247,8 @@
                                     <button type="submit">Create Post</button>
                                 </div>
                                 <div id="ct_update" class="hide">
-                                  <button type="button" onclick="">Update post</button>
-                                  <button type="button" onclick="">Cancel</button>
+                                  <button type="button" onclick="updatePost()">Update post</button>
+                                  <button type="button" onclick="clearUpdatePost()">Cancel</button>
                                 </div>
                             </div>
                             </form>
@@ -286,9 +263,9 @@
         document.getElementById('content').innerHTML = html;
     }
 
-    async function load_posts(offset=10n, limit=0n) {
+    async function load_posts(limit=10n, offset=0n) {
         try {
-            const posts = await client.list_posts(offset, limit);
+            const posts = await client.list_posts(limit, offset);
             await  render_posts(posts);
         } catch (error) {
             show_error(error);
@@ -298,7 +275,7 @@
     async function render_posts(posts) {
         const container = document.getElementById('posts-container');
         if (!container) return;
-        const isAuthenticated = await client.is_authenticated();
+        const isAuthenticated = client.is_authenticated();
         const currentUser =  client.get_current_user();
 
         let html = '<div class="post-list"><div class="caption_post">List post</div><div class="separator"></div>';
@@ -312,10 +289,10 @@
                                 <div id="c_${post.id}" class="content">${post.content}</div>
                             </div>`;
 
-               if (isAuthenticated /*&& post.author_id === currentUser.id*/) {
+               if (isAuthenticated && post.author_id === currentUser.id) {
                    html += `<div class="post-actions">
                                         <button onclick="editPost(${post.id})">Edit</button>
-                                         <button onclick="deletePost(${post.id})">Delete</button>
+                                         <button onclick="deletePost(${post.id}n)">Delete</button>
                             </div>`;
                }
                 html += '</div><div class="separator"></div>';
@@ -419,21 +396,44 @@
         const editor_id = document.getElementById("post-id");
         editor_title.value = title.textContent;
         editor_content.value = content.textContent;
-        editor_id.text = id;
+        editor_id.value = id;
 
         const bt_create = document.getElementById("ct_create");
         const bt_update = document.getElementById("ct_update");
         hide(bt_create);
         show(bt_update);
 
-       /* try {
-            await client.update_post(id, newTitle, newContent);
+
+    };
+
+    window.updatePost = async function() {
+        const title = document.getElementById("post-title").value;
+        const content = document.getElementById("post-content").value;
+        const id = document.getElementById("post-id").value;
+        try {
+            await client.update_post(id, title, content);
             await load_posts();
             clear_error();
+            clearUpdatePost();
+
         } catch (error) {
             show_error(error);
-        }*/
-    };
+        }
+    }
+
+
+    window.clearUpdatePost = function() {
+        const title = document.getElementById("post-title");
+        const content = document.getElementById("post-content");
+        const id = document.getElementById("post-id");
+        const bt_create = document.getElementById("ct_create");
+        const bt_update = document.getElementById("ct_update");
+        title.value = "";
+        content.value = "";
+        id.value = "";
+        show(bt_create);
+        hide(bt_update);
+    }
 
     window.deletePost = async function(id) {
         if (!confirm("Are you sure you want to delete this post?")) {
@@ -441,6 +441,7 @@
         }
 
         try {
+            console.log("delete post", id);
             await client.delete_post(id);
             await load_posts();
             clear_error();
@@ -448,6 +449,19 @@
             show_error(error);
         }
     };
+
+    window.show_login = function(){
+        const login = document.getElementById("login");
+        const register = document.getElementById("register");
+        show(login);
+        hide(register);
+    }
+    window.show_register = function(){
+        const login = document.getElementById("login");
+        const register = document.getElementById("register");
+        show(register);
+        hide(login);
+    }
 
     function show_error(message) {
         const container = document.getElementById('error-container');

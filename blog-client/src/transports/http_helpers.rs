@@ -150,11 +150,16 @@ impl HttpRequest for HttpClientRequest{
 #[cfg(target_arch = "wasm32")]
 impl HttpBuilder for HttpClientRequestBuilder{
     fn json<T: Serialize>(self, data: &T) -> HttpClientRequestBuilder {
+        
         if let Some(method) = self.method {
-            let request_builder = RequestBuilder::new(self.url.as_str())
+            let mut request_builder = RequestBuilder::new(self.url.as_str())
                 .method(Method::from(method.clone()));
+            let header = self.request.headers();
+            request_builder = request_builder.headers(header);
+            request_builder = request_builder.header("Content-Type", "application/json");
+            let json = serde_json::to_string(data).expect("Failed to serialize data");
             return HttpClientRequestBuilder{
-                request: request_builder.json(data).expect("Failed to create request builder"),
+                request: request_builder.body(json).expect("Failed to create request builder"),
                 method: Some(method),
                 url: self.url,
             }

@@ -21,10 +21,10 @@ use crate::models::models::StorageUser;
 ///
 /// # Variants
 ///
-/// - `Http(String)`  
+/// - `Http(String)`
 ///   Represents an HTTP transport with the specified base URL as a `String`.
 ///
-/// - `Grpc(String)` *(only available when the target architecture is not `wasm32`)*  
+/// - `Grpc(String)` *(only available when the target architecture is not `wasm32`)*
 ///   Represents a gRPC transport with the specified address as a `String`.
 ///
 /// # Notes
@@ -120,8 +120,8 @@ impl BlogClient {
     /// ```rust
     /// Creates and initializes a new instance of `BlogClient`.
     ///
-    /// This asynchronous function configures the client based on the provided transport type 
-    /// (`Transport::Http` or `Transport::Grpc`) and sets up the necessary underlying clients 
+    /// This asynchronous function configures the client based on the provided transport type
+    /// (`Transport::Http` or `Transport::Grpc`) and sets up the necessary underlying clients
     /// for communication. It applies a timeout value for operations where applicable.
     ///
     /// # Parameters
@@ -137,13 +137,13 @@ impl BlogClient {
     ///
     /// Returns `Result<Self, BlogClientError>`:
     /// - `Ok(Self)`: On successful initialization of the client.
-    /// - `Err(BlogClientError)`: If an error occurs during the setup process, such as failure 
+    /// - `Err(BlogClientError)`: If an error occurs during the setup process, such as failure
     ///   to initialize the HTTP client or gRPC client.
     ///
     /// # Platform-specific Behavior
     ///
     /// - When the target architecture is `wasm32`, only the HTTP client configuration (`Transport::Http`)
-    ///   is supported. If `Transport::Grpc` is passed, it will result in a compile-time error as gRPC 
+    ///   is supported. If `Transport::Grpc` is passed, it will result in a compile-time error as gRPC
     ///   is not available in `wasm32` builds.
     /// - For non-`wasm32` targets, both `Transport::Http` and `Transport::Grpc` are supported.
     ///
@@ -166,7 +166,7 @@ impl BlogClient {
     /// # Errors
     ///
     /// - If the provided transport type fails to initialize the associated client (e.g., due to
-    ///   invalid URL, unreachable server, or configuration errors), an error of type `BlogClientError` 
+    ///   invalid URL, unreachable server, or configuration errors), an error of type `BlogClientError`
     ///   will be returned.
     /// ```
     pub async fn new(transport: Transport, timeout: Duration) -> Result<Self, BlogClientError> {
@@ -242,12 +242,12 @@ impl BlogClient {
     /// Sets the authentication token for the current instance and updates associated clients.
     ///
     /// This asynchronous function updates the internal token and propagates it to the associated
-    /// HTTP and gRPC clients if they exist. Additionally, it saves the token persistently 
+    /// HTTP and gRPC clients if they exist. Additionally, it saves the token persistently
     /// using `save_token` if the token is provided. Behavior may differ based on platform.
     ///
     /// # Parameters
     ///
-    /// * `token` - An `Option<String>` representing the authentication token to be set. 
+    /// * `token` - An `Option<String>` representing the authentication token to be set.
     ///   If `None` is provided, the token is cleared.
     ///
     /// # Behavior
@@ -287,11 +287,8 @@ impl BlogClient {
     /// ```
     pub async fn set_token(&self, token: Option<String>) {
         *self.token.write().await = token.clone();
-        if let Some(http_client) = &self.http_client {
-            http_client.set_token(token.clone()).await;
-            if let Some(token) = token.clone() {
+        if let Some(token) = token.clone() {
                 let _ = self.save_token(&token);
-            }
         }
         #[cfg(not(target_arch = "wasm32"))]
         if let Some(grpc_client) = &self.grpc_client {
@@ -303,7 +300,7 @@ impl BlogClient {
     ///     ///
     ///     /// This function reads the token from the internal state, using an asynchronous
     ///     /// lock to ensure thread-safe access. The behavior is consistent regardless
-    ///     /// of whether the code is executed in a WebAssembly (wasm32) target or a 
+    ///     /// of whether the code is executed in a WebAssembly (wasm32) target or a
     ///     /// non-WebAssembly target, as both configurations employ the same logic.
     ///     ///
     ///     /// # Returns
@@ -422,26 +419,26 @@ impl BlogClient {
     /// ```rust
     /// Attempts to authenticate a user with the provided `username` and `password`.
     ///
-    /// Depending on the platform and transport configuration, this function utilizes the 
-    /// appropriate client (HTTP or gRPC) to execute the login request. Upon successful 
-    /// login, this function may also store authentication tokens or persistent user 
+    /// Depending on the platform and transport configuration, this function utilizes the
+    /// appropriate client (HTTP or gRPC) to execute the login request. Upon successful
+    /// login, this function may also store authentication tokens or persistent user
     /// information as needed.
     ///
     /// # Parameters
     ///
-    /// - `username`: 
+    /// - `username`:
     ///   The username of the user trying to log in. This should be a non-empty string.
-    /// - `password`: 
-    ///   The password associated with the provided username. This should be a secure 
+    /// - `password`:
+    ///   The password associated with the provided username. This should be a secure
     ///   string and should not be logged or stored in plaintext.
     ///
     /// # Returns
     ///
     /// A `Result` containing:
-    /// - `Ok(Response)`: If the login request is successful. The `Response` contains 
+    /// - `Ok(Response)`: If the login request is successful. The `Response` contains
     ///   the token and optionally the user ID information.
-    /// - `Err(BlogClientError)`: If an error occurs during the login process, such as 
-    ///   no transport being configured (`NoTransportConfigured`) or issues during the 
+    /// - `Err(BlogClientError)`: If an error occurs during the login process, such as
+    ///   no transport being configured (`NoTransportConfigured`) or issues during the
     ///   client communication process.
     ///
     /// # Behavior
@@ -449,7 +446,7 @@ impl BlogClient {
     /// - **HTTP Transport (WASM-32 target architecture):**
     ///   - Initiates an HTTP login request using the `http_client`.
     ///   - Stores the authentication token for future requests.
-    ///   - If a user ID is returned in the response, it saves the username and ID 
+    ///   - If a user ID is returned in the response, it saves the username and ID
     ///     persistently via `save_username`.
     ///
     /// - **gRPC Transport (Non-WASM-32 architectures):**
@@ -457,7 +454,7 @@ impl BlogClient {
     ///   - Stores the authentication token for future requests.
     ///
     /// - **Fallback:**
-    ///   - If no transport client (`http_client` or `grpc_client`) is configured, 
+    ///   - If no transport client (`http_client` or `grpc_client`) is configured,
     ///     the function returns `Err(B
     pub async fn login(&self, username: &str, password: &str) -> Result<Response, BlogClientError> {
         match self {
@@ -491,15 +488,15 @@ impl BlogClient {
     /// ```rust
     /// Creates a new blog post with the given title and content.
     ///
-    /// This function interacts with the configured transport (HTTP or gRPC) to send 
-    /// a request to create a new blog post. Depending on the underlying platform and 
+    /// This function interacts with the configured transport (HTTP or gRPC) to send
+    /// a request to create a new blog post. Depending on the underlying platform and
     /// configuration, the transport mechanism may vary:
     ///
-    /// - If the client is configured with an HTTP client (`http_client`), it will 
+    /// - If the client is configured with an HTTP client (`http_client`), it will
     ///   use the HTTP transport to create the post.
-    /// - If the client is configured with a gRPC client (`grpc_client`), and the 
+    /// - If the client is configured with a gRPC client (`grpc_client`), and the
     ///   target architecture is not `wasm32`, it will use gRPC to create the post.
-    /// - If no transport mechanism is configured, the function will return a 
+    /// - If no transport mechanism is configured, the function will return a
     ///   `BlogClientError::NoTransportConfigured` error.
     ///
     /// # Parameters
@@ -510,17 +507,17 @@ impl BlogClient {
     /// # Returns
     ///
     /// An `async` function that returns a `Result`:
-    /// - `Ok(Response)`: On successful creation of the blog post, it returns the response 
+    /// - `Ok(Response)`: On successful creation of the blog post, it returns the response
     ///   from the transport layer containing details about the newly created post.
-    /// - `Err(BlogClientError)`: If an error occurs during the process. Possible errors 
-    ///   include a lack of a configured transport mechanism or errors in the underlying 
+    /// - `Err(BlogClientError)`: If an error occurs during the process. Possible errors
+    ///   include a lack of a configured transport mechanism or errors in the underlying
     ///   transport.
     ///
     /// # Errors
     ///
     /// - `BlogClientError::NoTransportConfigured`: Returned if neither an HTTP nor gRPC
     ///   client is configured.
-    /// - Other variants of `BlogClientError` may occur depending on the implementation 
+    /// - Other variants of `BlogClientError` may occur depending on the implementation
     ///   of the transport mechanism used.
     ///
     /// # Platform-Specific Behavior
@@ -557,12 +554,12 @@ impl BlogClient {
             Self {
                 http_client: Some(client),
                 ..
-            } => client.create_post(title, content).await,
+            } => client.create_post(title, content, self.get_token().await).await,
             #[cfg(not(target_arch = "wasm32"))]
             Self {
                 grpc_client: Some(client),
                 ..
-            } => client.create_post(title, content).await,
+            } => client.create_post(title, content, self.get_token().await).await,
             _ => Err(BlogClientError::NoTransportConfigured),
         }
     }
@@ -571,7 +568,7 @@ impl BlogClient {
     ///
     /// This function attempts to fetch a blog post using the available transport client:
     /// - If an HTTP client is configured, it will attempt to fetch the post via HTTP.
-    /// - If a gRPC client is configured (and the target architecture is not WebAssembly), 
+    /// - If a gRPC client is configured (and the target architecture is not WebAssembly),
     ///   it will attempt to fetch the post via gRPC.
     /// - If no transport client is configured, an error is returned.
     ///
@@ -658,12 +655,12 @@ impl BlogClient {
             Self {
                 http_client: Some(client),
                 ..
-            } => client.update_post(id, title, content).await,
+            } => client.update_post(id, title, content, self.get_token().await).await,
             #[cfg(not(target_arch = "wasm32"))]
             Self {
                 grpc_client: Some(client),
                 ..
-            } => client.update_post(id, title, content).await,
+            } => client.update_post(id, title, content, self.get_token().await).await,
             _ => Err(BlogClientError::NoTransportConfigured),
         }
     }
@@ -729,20 +726,20 @@ impl BlogClient {
             Self {
                 http_client: Some(client),
                 ..
-            } => client.delete_post(id).await,
+            } => client.delete_post(id, self.get_token().await).await,
             #[cfg(not(target_arch = "wasm32"))]
             Self {
                 grpc_client: Some(client),
                 ..
-            } => client.delete_post(id).await,
+            } => client.delete_post(id, self.get_token().await).await,
             _ => Err(BlogClientError::NoTransportConfigured),
         }
     }
     /// ```rust
     /// Retrieves a list of blog posts with optional pagination parameters.
     ///
-    /// This asynchronous function attempts to fetch posts by using the available client configuration. 
-    /// Depending on the target architecture, it utilizes either an HTTP client or gRPC client to retrieve 
+    /// This asynchronous function attempts to fetch posts by using the available client configuration.
+    /// Depending on the target architecture, it utilizes either an HTTP client or gRPC client to retrieve
     /// the posts. If no transport mechanism is configured, it returns an error.
     ///
     /// # Parameters
@@ -811,7 +808,7 @@ impl BlogClient {
     /// This method performs platform-specific token retrieval depending on the target architecture:
     ///
     /// - **Non-WASM platforms**:
-    ///   - Attempts to read the token from a local file named `.blog_token` in the current directory. 
+    ///   - Attempts to read the token from a local file named `.blog_token` in the current directory.
     ///   - If the file exists, the token is loaded and set in the client.
     ///   - If the file does not exist, the method simply completes without taking further action.
     ///
@@ -927,7 +924,7 @@ impl BlogClient {
     ///      * in the browser's local storage.
     ///      *
     ///      * # Configuration
-    ///      * This function is conditionally compiled and only available when targeting the 
+    ///      * This function is conditionally compiled and only available when targeting the
     ///      * WebAssembly `wasm32` architecture using the `#[cfg(target_arch = "wasm32")]` attribute.
     ///      *
     ///      * # Usage
@@ -952,15 +949,15 @@ impl BlogClient {
     ///
     /// This function works differently depending on the target architecture:
     ///
-    /// - **Non-WebAssembly (`not(target_arch = "wasm32")`)**:  
+    /// - **Non-WebAssembly (`not(target_arch = "wasm32")`)**:
     ///   Deletes a local file named `.blog_token` from the filesystem if it exists.
-    /// - **WebAssembly (`target_arch = "wasm32"`)**:  
+    /// - **WebAssembly (`target_arch = "wasm32"`)**:
     ///   Deletes the `blog_token` and `blog_username` entries from the browser's local storage.
     ///
     /// # Errors
     ///
-    /// - **Non-WebAssembly**:  
-    ///   Returns a `BlogClientError` if there is an issue removing the `.blog_token` file (e.g., 
+    /// - **Non-WebAssembly**:
+    ///   Returns a `BlogClientError` if there is an issue removing the `.blog_token` file (e.g.,
     ///   file permissions, path issues).
     ///
     /// # Example
@@ -976,7 +973,7 @@ impl BlogClient {
     ///
     /// # Notes
     ///
-    /// On WebAssembly (`wasm32`), this function does not return an error even if the specified 
+    /// On WebAssembly (`wasm32`), this function does not return an error even if the specified
     /// local storage keys do not exist, as deletion is safe under such conditions.
     /// ```
     pub fn clear_token(&self) -> Result<(), BlogClientError> {
@@ -1004,12 +1001,12 @@ impl BlogClient {
     /// It uses the `cfg` attribute to conditionally include this code for WebAssembly.
     ///
     /// # Returns
-    /// - `Some(StorageUser)` if a user is stored in local storage under the key `"blog_username"` 
+    /// - `Some(StorageUser)` if a user is stored in local storage under the key `"blog_username"`
     ///   and can be successfully deserialized.
     /// - `None` if the key `"blog_username"` does not exist or if deserialization fails.
     ///
     /// # Requirements
-    /// This function depends on the presence of a valid WebAssembly environment with access 
+    /// This function depends on the presence of a valid WebAssembly environment with access
     /// to the `LocalStorage` API.
     ///
     /// # Example
@@ -1026,11 +1023,12 @@ impl BlogClient {
     /// ```
     ///
     /// # Errors
-    /// This function does not explicitly raise errors; instead, it returns `None` when 
+    /// This function does not explicitly raise errors; instead, it returns `None` when
     /// local storage access or deserialization fails.
     /// ```
     #[cfg(target_arch = "wasm32")]
     pub fn get_user(&self) -> Option<StorageUser> {
+        
         LocalStorage::get("blog_username").ok()
     }
 }
@@ -1096,8 +1094,8 @@ impl BlogClientBuilder {
     /// ```rust
     /// Sets the transport method for the object and returns the updated instance.
     ///
-    /// This method allows you to specify a `Transport` instance, which will be used 
-    /// by the object. The provided `Transport` is stored in an internal optional field. 
+    /// This method allows you to specify a `Transport` instance, which will be used
+    /// by the object. The provided `Transport` is stored in an internal optional field.
     ///
     /// # Parameters
     /// - `transport`: The `Transport` instance to set for the object.
@@ -1118,13 +1116,13 @@ impl BlogClientBuilder {
     ///     ///
     ///     /// Configures the client to use HTTP transport with the specified base URL.
     ///     ///
-    ///     /// This method sets up the HTTP transport layer by initializing it with the 
-    ///     /// provided base URL. The base URL is converted into a `String` and then passed 
+    ///     /// This method sets up the HTTP transport layer by initializing it with the
+    ///     /// provided base URL. The base URL is converted into a `String` and then passed
     ///     /// to the HTTP transport layer.
     ///     ///
     ///     /// # Parameters
     ///     ///
-    ///     /// * `base_url` - A type that can be converted into a `String`. Represents the 
+    ///     /// * `base_url` - A type that can be converted into a `String`. Represents the
     ///     ///   base URL of the HTTP endpoint that the client will communicate with.
     ///     ///
     ///     /// # Returns
@@ -1137,7 +1135,7 @@ impl BlogClientBuilder {
     ///     /// let client = Client::new().http("https://api.example.com");
     ///     /// ```
     ///     ///
-    ///     /// In this example, the client is configured to use the HTTP transport with 
+    ///     /// In this example, the client is configured to use the HTTP transport with
     ///     /// "https://api.example.com" as the base URL.
     ///     ///
     /// ```
@@ -1149,7 +1147,7 @@ impl BlogClientBuilder {
     /// ```rust
     ///     /**
     ///      * Configures the transport layer to use gRPC with the specified address.
-    ///      * 
+    ///      *
     ///      * This method is only available when the target architecture is not WebAssembly (`wasm32`),
     ///      * as gRPC is not supported in that environment.
     ///      *

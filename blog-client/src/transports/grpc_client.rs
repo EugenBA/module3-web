@@ -12,7 +12,6 @@ use tonic::{Request, metadata::MetadataValue, transport::Channel};
 #[derive(Clone)]
 pub(crate) struct GrpcClient {
     client: ProtoBlogServiceClient<Channel>,
-    token: Arc<RwLock<Option<String>>>,
 }
 
 impl GrpcClient {

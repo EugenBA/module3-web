@@ -473,6 +473,7 @@ dependencies = [
  "chrono",
  "gloo-net",
  "gloo-storage",
+ "log",
  "prost",
  "prost-types",
  "reqwest",
@@ -483,6 +484,8 @@ dependencies = [
  "tonic",
  "tonic-prost",
  "tonic-prost-build",
+ "wasm-bindgen-futures",
+ "wasm-logger",
 ]
 
 [[package]]

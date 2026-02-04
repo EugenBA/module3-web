@@ -7,6 +7,7 @@ use crate::transports::http_helpers::{HttpClientRequest, HttpRequestMethod, Http
 use serde_json::json;
 use std::sync::Arc;
 use core::time::Duration;
+use log::trace;
 use tokio::sync::RwLock;
 
 
@@ -14,7 +15,6 @@ use tokio::sync::RwLock;
 pub(crate) struct HttpClient {
     client: HttpClientRequest,
     base_url: String,
-    token: Arc<RwLock<Option<String>>>,
 }
 
 
@@ -24,16 +24,7 @@ impl HttpClient {
         Ok(Self {
             client,
             base_url: base_url.trim_end_matches('/').to_string(),
-            token: Arc::new(RwLock::new(None)),
         })
-    }
-
-    pub(crate) async fn set_token(&self, token: Option<String>) {
-        *self.token.write().await = token;
-    }
-
-    async fn get_token(&self) -> Option<String> {
-        self.token.read().await.clone()
     }
 
     async fn request<T>(
@@ -41,18 +32,16 @@ impl HttpClient {
         method: HttpRequestMethod,
         path: &str,
         body: Option<serde_json::Value>,
+        token: Option<String>
     ) -> Result<T, BlogClientError>
     where
         T: serde::de::DeserializeOwned,
     {
         let url = format!("{}{}", self.base_url, path);
         let mut request = self.client.request(method, &url);
-
-       // Добавляем токен если есть
-        if let Some(token) = self.get_token().await {
+        if let Some(token) = token{
             request = request.bearer_auth(token);
         }
-
         // Добавляем тело если нужно
         if let Some(body) = body {
             request = request.json(&body);
@@ -82,7 +71,8 @@ impl HttpClient {
             password: password.to_string(),
         });
 
-        self.request::<Response>(HttpRequestMethod::POST, "/api/auth/register", Some(body))
+        self.request::<Response>(HttpRequestMethod::POST, "/api/auth/register",
+                                 Some(body), None)
             .await
     }
 
@@ -96,7 +86,8 @@ impl HttpClient {
             password: password.to_string(),
         });
 
-        self.request::<Response>(HttpRequestMethod::POST, "/api/auth/login", Some(body))
+        self.request::<Response>(HttpRequestMethod::POST, "/api/auth/login",
+                                 Some(body), None)
             .await
     }
 
@@ -104,18 +95,22 @@ impl HttpClient {
         &self,
         title: &str,
         content: &str,
+        token: Option<String>
     ) -> Result<Response, BlogClientError> {
         let body = json!(CreatePostRequest {
             title: title.to_string(),
             content: content.to_string(),
         });
 
-        self.request::<Response>(HttpRequestMethod::POST, "/api/posts", Some(body))
+        self.request::<Response>(HttpRequestMethod::POST, "/api/posts",
+                                 Some(body), token)
             .await
     }
 
     pub(crate) async fn get_post(&self, id: i64) -> Result<Response, BlogClientError> {
-        self.request::<Response>(HttpRequestMethod::GET, &format!("/api/posts/{}", id), None)
+        self.request::<Response>(HttpRequestMethod::GET,
+                                 &format!("/api/posts/{}", id),
+                                 None, None)
             .await
     }
 
@@ -124,6 +119,7 @@ impl HttpClient {
         id: i64,
         title: &str,
         content: &str,
+        token: Option<String>
     ) -> Result<Response, BlogClientError> {
         let body = json!(UpdatePostRequest {
             id,
@@ -135,16 +131,18 @@ impl HttpClient {
             HttpRequestMethod::PUT,
             &format!("/api/posts/{}", id),
             Some(body),
+            token
         )
         .await
     }
 
-    pub(crate) async fn delete_post(&self, id: i64) -> Result<Response, BlogClientError> {
+    pub(crate) async fn delete_post(&self, id: i64, token: Option<String>) -> Result<Response, BlogClientError> {
         let response = self
             .request::<Response>(
                 HttpRequestMethod::DELETE,
                 &format!("/api/posts/{}", id),
                 None,
+                token
             )
             .await?;
 
@@ -170,7 +168,7 @@ impl HttpClient {
             url = format!("{}?{}", url, params.join("&"));
         }
 
-        self.request::<Response>(HttpRequestMethod::GET, &url, None)
+        self.request::<Response>(HttpRequestMethod::GET, &url, None, None)
             .await
     }
 }
