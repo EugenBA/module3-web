@@ -5,13 +5,102 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blog Client</title>
     <style>
-        /* тот же CSS что и выше */
+        html {
+            min-width: 100%;
+            min-height: 100%;
+        }
+        h1, h2{
+            margin-bottom: 0.5rem;
+            line-height: 1.2;
+            font-size: 1.5rem;
+        }
+        input, button{
+            margin: 0;
+            font-family: inherit;
+            font-size: inherit;
+            line-height: inherit;
+        }
+        .hide{
+            visibility: collapse;
+        }
+        .show{
+            visibility: visible;
+        }
+        .caption{
+            background-color: #e4a071;
+            color: #474141;
+            padding-left: 5px;
+            padding-bottom: 1px;
+            padding-top: 1px;
+        }
+        .auth-forms{
+            display: flex;
+        }
+        .auth-status{
+            display: flex;
+            justify-content: flex-start;
+            width: 95%;
+            height: 50px;
+        }
+        .nav-block{
+            width: 80%;
+        }
+        .nav-item{
+            cursor: pointer;
+            padding-right: 5px;
+        }
+        .nav-item:hover{
+            background-color: darkgrey;
+            padding: 1px;
+        }
+        .in_menu{
+        }
+        .user_name{
+            margin: 1%;
+        }
+        .separator{
+            height: 2px;
+            background-color: #333030;
+            width: 100%;
+        }
+        #logged, #unlogged{
+            float: right;
+            width: 100%;
+            display: flex;
+        }
+        #login, #register {
+            margin-bottom: 1%;
+            width: 50%;
+        }
+
     </style>
 </head>
 <body>
 <div id="app">
     <div id="content"></div>
 </div>
+<script type="text/javascript">
+    function show(obj){
+        obj.classList.remove("hide");
+        obj.classList.add("show");
+    }
+    function hide(obj){
+        obj.classList.remove("show");
+        obj.classList.add("hide");
+    }
+    function show_login(){
+        const login = document.getElementById("login");
+        const register = document.getElementById("register");
+        show(login);
+        hide(register);
+    }
+    function show_register(){
+        const login = document.getElementById("login");
+        const register = document.getElementById("register");
+        show(register);
+        hide(login);
+    }
+</script>
 
 <script type="module">
     import init, { WasmBlogClient, set_panic_hook } from './pkg/blog_wasm.js';
@@ -21,11 +110,12 @@
     async function initialize() {
         await init();
         set_panic_hook();
-
+        const offset=10n;
+        const limit=0n
         client = await new WasmBlogClient("http://localhost:3000", 30);
         // Проверяем аутентификацию и загружаем посты
         await update_ui();
-        await load_posts(10n, 0n);
+        await load_posts(offset, limit);
     }
 
 
@@ -34,32 +124,49 @@
         const currentUser =  client.get_current_user();
         let html = `
                 <header>
-                    <h1>Blog Client</h1>
+                    <div class="caption">
+                        <h1>Blog Client</h1>
+                    </div>
                     <div class="auth-status">
             `;
 
-        if (isAuthenticated && currentUser && currentUser.id !== -1) {
-            html += `<span id="user" data-id="${currentUser.id}">Logged in as: ${currentUser.username}</span>
-                         <button onclick="logout()">Logout</button>`;
+        if (isAuthenticated && currentUser) {
+            html += `<div id="logged">
+                         <div class="nav-block"></div>
+                         <div class="user_name">
+                            <span>Logged in as: ${currentUser.username}</span>
+                            <button onclick="logout()">Logout</button>
+                            <div class="hide">${currentUser.id}</div>
+                         </div>
+                     </div>`;
         } else {
-            html += `<span>Not logged in</span>`;
+            html += `<div id="unlogged">
+                      <div class="nav-block"></div>
+                      <div class="in_menu">
+                        <ul id="menu">
+                         <il onclick="show_login()" class="nav-item" >Login</il>
+                         <il onclick="show_register()" class="nav-item">Register</il>
+                        </ul>
+                      </div>
+                      <div class="user_name">Not logged in</div>
+                   </div>`;
         }
 
-        html += `</div></header>`;
+        html += `</div></header><div class="separator"></div>`;
 
         if (!isAuthenticated) {
             html += `
                     <div class="auth-forms">
-                        <div class="login-form">
+                        <div id="login" class="login-form show">
                             <h2>Login</h2>
                             <form onsubmit="handleLogin(event)">
-                                <input type="text" id="login-username" placeholder="Username" required>
-                                <input type="password" id="login-password" placeholder="Password" required>
+                                  <input type="text" id="login-username" placeholder="Username" required>
+                                 <input type="password" id="login-password" placeholder="Password" required>
                                 <button type="submit">Login</button>
                             </form>
                         </div>
 
-                        <div class="register-form">
+                        <div id="register" class="register-form hide">
                             <h2>Register</h2>
                             <form onsubmit="handleRegister(event)">
                                 <input type="text" id="register-username" placeholder="Username" required>
@@ -69,6 +176,7 @@
                             </form>
                         </div>
                     </div>
+                    <div class="separator"></div>
                 `;
         } else {
             html += `
@@ -89,11 +197,9 @@
         document.getElementById('content').innerHTML = html;
     }
 
-    async function load_posts(limit = 10n, offset = 0n) {
+    async function load_posts(offset=10n, limit=0n) {
         try {
-            console.log('Loading posts...');
-            const posts = await client.list_posts(limit, offset);
-            console.log(posts);
+            const posts = await client.list_posts(offset, limit);
             render_posts(posts);
         } catch (error) {
             show_error(error);
@@ -145,6 +251,7 @@
 
         try {
             const login = await client.login(username, password);
+            console.log(login);
             await update_ui();
             await load_posts();
             clear_error();
@@ -254,6 +361,7 @@
 
     // Инициализация при загрузке
     document.addEventListener('DOMContentLoaded', initialize);
+
 </script>
 </body>
 </html>
