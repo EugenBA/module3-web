@@ -33,6 +33,11 @@
             padding-bottom: 1px;
             padding-top: 1px;
         }
+        .caption_post{
+            background-color: #b6b6b6;
+            padding: 5px;
+            font-size: 1rem;
+        }
         .auth-forms{
             display: flex;
         }
@@ -62,6 +67,36 @@
             height: 2px;
             background-color: #333030;
             width: 100%;
+        }
+        .post{
+            display: flex;
+            width: 100%;
+        }
+        .post-content{
+            width: 100%;
+        }
+        .post-content:nth-child(odd){
+            background-color: #7b9e9f;
+        }
+        .post-content:nth-child(even){
+            background-color: #9eb8b8;
+        }
+        .post-created{
+            padding-left: 10px;
+            background-color: #b6b6b6;
+        }
+        .title{
+            padding: 10px;
+            font-style: italic;
+            width: 28%;
+            border-left: #b6b6b6 1px;
+            border-bottom: #b6b6b6 1px;
+        }
+        .content{
+            padding-left: 2px;
+            padding-top: 5px;
+            padding-bottom: 5px;
+            width: 70%;
         }
         #logged, #unlogged{
             float: right;
@@ -122,6 +157,7 @@
     async function update_ui() {
         const isAuthenticated = await client.is_authenticated();
         const currentUser =  client.get_current_user();
+        console.log("current user", currentUser);
         let html = `
                 <header>
                     <div class="caption">
@@ -200,34 +236,36 @@
     async function load_posts(offset=10n, limit=0n) {
         try {
             const posts = await client.list_posts(offset, limit);
-            render_posts(posts);
+            await  render_posts(posts);
         } catch (error) {
             show_error(error);
         }
     }
 
-    function render_posts(posts) {
+    async function render_posts(posts) {
         const container = document.getElementById('posts-container');
         if (!container) return;
+        const isAuthenticated = await client.is_authenticated();
+        const currentUser =  client.get_current_user();
 
-        let html = '<div class="post-list"><h2>All Posts</h2>';
+        let html = '<div class="post-list"><div class="caption_post">List post</div><div class="separator"></div>';
 
         if (posts && posts.length > 0) {
             posts.forEach(post => {
-                html += `
-                        <div class="post" data-id="${post.id}">
-                            <h3>${post.title}</h3>
-                            <p>${post.content}</p>
-                            <div class="post-meta">
-                                <span>Author: ${post.author_name}</span>
-                                <span> | Created: ${post.created_at}</span>
-                            </div>
-                            <div class="post-actions">
-                                <button onclick="editPost(${post.id}, '${post.title}', '${post.content}')">Edit</button>
-                                <button onclick="deletePost(${post.id})">Delete</button>
-                            </div>
-                        </div>
-                    `;
+                html += `<div class="post" data-id="${post.id}">
+                            <div class="post-created">Created: ${post.created_at}</div>
+                            <div class="post-content">
+                                <div class="title">${post.title}</div>
+                                <div class="content">${post.content}</div>
+                            </div>`;
+
+               if (isAuthenticated) {
+                   html += `<div class="post-actions">
+                                        <button onclick="editPost(${post.id}, '${post.title}', '${post.content}')">Edit</button>
+                                         <button onclick="deletePost(${post.id})">Delete</button>
+                            </div>`;
+               }
+                html += '</div><div class="separator"></div>';
             });
         } else {
             html += '<p>No posts yet.</p>';
