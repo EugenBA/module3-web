@@ -26,7 +26,7 @@ log_warning() {
 
 # Проверка наличия CLI
 check_cli() {
-    if ! command -v blog-cli &> /dev/null; then
+    if ! command -v target/debug/blog-cli &> /dev/null; then
         log_error "blog-cli не найден. Убедитесь, что CLI установлен и доступен в PATH."
         exit 1
     fi
