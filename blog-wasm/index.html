@@ -156,7 +156,6 @@
         const offset=0n;
         const limit=10n;
         client = await new WasmBlogClient("http://localhost:3000", 30);
-        // Проверяем аутентификацию и загружаем посты
         await update_ui();
         await load_posts(limit, offset);
     }
@@ -285,7 +284,7 @@
         if (posts && posts.length > 0) {
             posts.forEach(post => {
                 html += `<div class="width-full flex" data-id="${post.id}">
-                            <div class="post-created">Created: ${post.created_at}</div>
+                            <div class="post-created">Created: ${format_data(post.created_at)}</div>
                             <div class="post-content">
                                 <div id="t_${post.id}" class="title">${post.title}</div>
                                 <div id="c_${post.id}" class="content">${post.content}</div>
@@ -320,7 +319,6 @@
         }
 
         try {
-            const login = await client.login(username, password);
             await update_ui();
             await load_posts();
             clear_error();
@@ -461,6 +459,18 @@
         const register = document.getElementById("register");
         show(register);
         hide(login);
+    }
+    window.format_data = function(data_string){
+        const date = new Date(data_string);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0'); // Месяцы с 0
+        const year = date.getFullYear();
+
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+
+        return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
     }
 
     function show_error(message) {
