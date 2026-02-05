@@ -132,11 +132,11 @@ impl BlogRepository for InDbPostRepository {
         )
         .bind(limit)
         .bind(offset)
-        .fetch_optional(&self.pool)
+        .fetch_all(&self.pool)
         .await?;
 
         Ok(row
-            .map(|r| Post {
+            .into_iter().map(|r| Post {
                 id: r.get("id"),
                 title: r.get("title"),
                 content: r.get("content"),

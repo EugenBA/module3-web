@@ -36,10 +36,8 @@ impl WasmBlogClient {
     }
     #[wasm_bindgen]
     pub async fn login(&self, username: String, password: String) -> Result<JsValue, JsValue> {
-        trace!("login called with username: {}, password: {}", username, password);
         let response = self.http_client.login(&username, &password).await
             .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
-        trace!("{:?}", response);
         Ok(serde_wasm_bindgen::to_value(&response)?)
     }
 
@@ -58,9 +56,9 @@ impl WasmBlogClient {
 
     #[wasm_bindgen]
     pub async fn delete_post(&self, id: i64) -> Result<JsValue, JsValue> {
-        let _ = self.http_client.delete_post(id).await
-            .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
-        Ok(JsValue::from_str("ok"))
+        let result = self.http_client.delete_post(id).await;
+        trace!("Delete result {:?}", result);
+;        Ok(JsValue::from_str("ok"))
     }
 
     #[wasm_bindgen]

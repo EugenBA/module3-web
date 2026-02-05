@@ -4,7 +4,7 @@ use reqwest::{Method, RequestBuilder, Client, Response};
 #[cfg(target_arch = "wasm32")]
 use gloo_net::http::{Request, RequestBuilder, Response, Method};
 use serde::Serialize;
-#[cfg(target_arch = "wasm32")]
+//#[cfg(target_arch = "wasm32")]
 use core::time::Duration;
 use std::fmt;
 use crate::error::BlogClientError;

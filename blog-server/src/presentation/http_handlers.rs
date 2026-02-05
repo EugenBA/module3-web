@@ -82,7 +82,6 @@ pub(crate) async fn get_posts(
     }))
 }
 
-//#[put("/posts/{id}")]
 pub(crate) async fn update_post(
     req: HttpRequest,
     user: AuthenticatedUser,
@@ -103,7 +102,6 @@ pub(crate) async fn update_post(
     Ok(HttpResponse::Ok().json(post))
 }
 
-//#[delete("/posts/{id}")]
 pub(crate) async fn delete_post(
     req: HttpRequest,
     user: AuthenticatedUser,
@@ -117,10 +115,9 @@ pub(crate) async fn delete_post(
         post_id = %path.into_inner(),
         "post delete"
     );
-    Ok(HttpResponse::NoContent().into())
+    Ok(HttpResponse::Ok().into())
 }
 
-//#[post("/auth/register")]
 pub(crate) async fn register(
     req: HttpRequest,
     auth: web::Data<AuthService<InDbUserRepository>>,
@@ -140,7 +137,6 @@ pub(crate) async fn register(
     }))
 }
 
-//#[post("/auth/login")]
 pub(crate) async fn login(
     req: HttpRequest,
     auth: web::Data<AuthService<InDbUserRepository>>,

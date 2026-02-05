@@ -39,8 +39,8 @@ async fn main() ->Result<(), Box<dyn Error>>{
         Commands::Register { username, email, password } => {
             let result = client.register(username, email, password).await;
             // Для Register сохраняем токен, если он был получен
-            if let Ok(ref result) = result {
-                if client.save_token(&result.token).is_ok() {
+            if let Ok(ref result) = result  && let Some(token) = &result.token{
+                if client.save_token(&token).is_ok() {
                     println!("User regiser, token saved to .blog_token");
                 }
             }
@@ -49,9 +49,9 @@ async fn main() ->Result<(), Box<dyn Error>>{
         Commands::Login { username, password } => {
             let result = client.login(username, password).await;
             // Для Login сохраняем токен
-            if let Ok(ref result) = result {
-                if client.save_token(&result.token).is_ok() {
-                    println!("User: {}, login, Token saved to .blog_token", result.username);
+            if let Ok(ref result) = result && let Some(token) = &result.token {
+                if client.save_token(&token).is_ok() {
+                    println!("User: {:?}, login, Token saved to .blog_token", result.user);
                 }
             }
             result

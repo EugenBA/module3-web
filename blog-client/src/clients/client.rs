@@ -290,10 +290,6 @@ impl BlogClient {
         if let Some(token) = token.clone() {
                 let _ = self.save_token(&token);
         }
-        #[cfg(not(target_arch = "wasm32"))]
-        if let Some(grpc_client) = &self.grpc_client {
-            grpc_client.set_token(token).await;
-        }
     }
     /// ```rust
     ///     /// Asynchronously retrieves the current token stored within the object.
@@ -410,7 +406,7 @@ impl BlogClient {
                 ..
             } => {
                 let response = client.register(username, email, password).await?;
-                self.set_token(Some(response.token.clone())).await;
+                self.set_token(response.token.clone()).await;
                 Ok(response)
             }
             _ => Err(BlogClientError::NoTransportConfigured),
@@ -479,7 +475,7 @@ impl BlogClient {
                 ..
             } => {
                 let response = client.login(username, password).await?;
-                self.set_token(Some(response.token.clone())).await;
+                self.set_token(response.token.clone()).await;
                 Ok(response)
             }
             _ => Err(BlogClientError::NoTransportConfigured),

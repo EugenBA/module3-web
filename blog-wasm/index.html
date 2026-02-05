@@ -161,8 +161,6 @@
     async function update_ui() {
         const isAuthenticated = client.is_authenticated();
         const currentUser =  client.get_current_user();
-        console.log("current user", currentUser);
-        console.log("authenticate", isAuthenticated);
         let html = `
                 <header>
                     <div class="caption">
@@ -319,7 +317,6 @@
 
         try {
             const login = await client.login(username, password);
-            console.log(login);
             await update_ui();
             await load_posts();
             clear_error();
@@ -441,7 +438,6 @@
         }
 
         try {
-            console.log("delete post", id);
             await client.delete_post(id);
             await load_posts();
             clear_error();

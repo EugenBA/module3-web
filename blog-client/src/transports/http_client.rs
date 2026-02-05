@@ -5,10 +5,7 @@ use crate::models::models::{
 
 use crate::transports::http_helpers::{HttpClientRequest, HttpRequestMethod, HttpRequest, HttpBuilder};
 use serde_json::json;
-use std::sync::Arc;
 use core::time::Duration;
-use log::trace;
-use tokio::sync::RwLock;
 
 
 
