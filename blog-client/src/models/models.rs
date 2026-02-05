@@ -1,3 +1,4 @@
+use std::fmt::Display;
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::Duration;
 use chrono::{DateTime, Utc};
@@ -172,6 +173,28 @@ pub struct Response {
     pub id: Option<i64>,
     pub user: Option<String>,
     pub token: Option<String>,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl Response {
+    pub fn format_output(&self) -> String {
+        let mut output = String::new();
+        if let Some(posts) = &self.posts {
+            if let Some(id) = &self.id {
+                output.push_str(&format!("User ID: {}\n", id));
+            }
+            if let Some(user) = &self.user {
+                output.push_str(&format!("User name: {}\n", user));
+            }
+            output.push_str("Posts:\n");
+            output.push_str("------------------------------\n");
+            for post in posts {
+                output.push_str(&format!("Post ID: {}\nTitle: {}\nContent: {}\n", post.id, post.title, post.content));
+                output.push_str("------------------------------\n");
+            }
+        }
+        output
+    }
 }
 
 /// ```

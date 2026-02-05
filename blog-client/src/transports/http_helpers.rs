@@ -77,7 +77,8 @@ impl HttpRequest for HttpClientRequest {
     fn new(timeout: Duration) -> Self {
         Self {client: Client::builder()
             .user_agent(format!("blog-client/{}", env!("CARGO_PKG_VERSION")))
-            .timeout(timeout)
+            .no_proxy()
+            .connect_timeout(timeout)
             .build().expect("Failed to create client"),
             timeout
         }

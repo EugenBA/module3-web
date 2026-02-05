@@ -3,6 +3,7 @@ use chrono::Duration;
 use clap::Parser;
 use blog_client::clients::client::{BlogClient, Transport};
 use blog_client::error::BlogClientError;
+use blog_client::models::models::Response;
 use crate::cli::{Cli, Commands};
 
 
@@ -17,7 +18,7 @@ async fn main() ->Result<(), Box<dyn Error>>{
     let server_address = if cli.grpc {
         cli.server.unwrap_or_else(|| "localhost:50051".to_string())
     } else {
-        cli.server.unwrap_or_else(|| "http://localhost:8080".to_string())
+        cli.server.unwrap_or_else(|| "http://127.0.0.1:3000".to_string())
     };
 
     let transport = if cli.grpc == true {
@@ -39,9 +40,10 @@ async fn main() ->Result<(), Box<dyn Error>>{
         Commands::Register { username, email, password } => {
             let result = client.register(username, email, password).await;
             // Для Register сохраняем токен, если он был получен
-            if let Ok(ref result) = result  && let Some(token) = &result.token{
+            if let Ok(ref result) = result  && let Some(token) = &result.token
+            && let Some(user) = &result.user{
                 if client.save_token(&token).is_ok() {
-                    println!("User regiser, token saved to .blog_token");
+                    println!("User: {} register, token saved to .blog_token", user);
                 }
             }
             result
@@ -50,8 +52,8 @@ async fn main() ->Result<(), Box<dyn Error>>{
             let result = client.login(username, password).await;
             // Для Login сохраняем токен
             if let Ok(ref result) = result && let Some(token) = &result.token {
-                if client.save_token(&token).is_ok() {
-                    println!("User: {:?}, login, Token saved to .blog_token", result.user);
+                if client.save_token(&token).is_ok() && let Some (user) = &result.user{
+                    println!("User: {}, login, Token saved to .blog_token", user);
                 }
             }
             result
@@ -90,7 +92,10 @@ async fn main() ->Result<(), Box<dyn Error>>{
             client.list_posts(Some(*limit), Some(*offset)).await
         }
     };
-
+    match response {
+        Ok(response) => { println!("{}", response.format_output())}
+        Err(e) => {println!("Error: {}", e)}
+    }
     Ok(())
 }
 

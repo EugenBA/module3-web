@@ -5,39 +5,51 @@ use clap::{Parser, Subcommand};
 pub(crate) enum Commands {
     /// Регистрация нового пользователя
     Register {
+        #[arg(long)]
         username: String,
+        #[arg(long)]
         email: String,
+        #[arg(long)]
         password: String,
     },
     /// Авторизация пользователя
     Login {
+        #[arg(long)]
         username: String,
+        #[arg(long)]
         password: String,
     },
     /// Создание новой записи
     Create {
+        #[arg(long)]
         title: String,
+        #[arg(long)]
         content: String,
     },
     /// Получение записи по ID
     Get {
+        #[arg(long)]
         id: i64,
     },
     /// Обновление записи
     Update {
+        #[arg(long)]
         id: i64,
+        #[arg(long)]
         title: Option<String>,
+        #[arg(long)]
         content: Option<String>,
     },
     /// Удаление записи
     Delete {
+        #[arg(long)]
         id: i64,
     },
     /// Список записей с пагинацией
     List {
-        #[arg(short, long, default_value = "10")]
+        #[arg(long, default_value = "10")]
         limit: i64,
-        #[arg(short, long, default_value = "0")]
+        #[arg(long, default_value = "0")]
         offset: i64,
     },
 }
