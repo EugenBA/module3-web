@@ -75,7 +75,7 @@ test_http() {
 
     # 1. Регистрация
     log_info "1. Тестирование регистрации"
-    if blog-cli register --username "$TEST_USERNAME" --email "$TEST_EMAIL" --password "$TEST_PASSWORD" | grep "$TEST_USERNAME"; then
+    if blog-cli register --username "$TEST_USERNAME" --email "$TEST_EMAIL" --password "$TEST_PASSWORD" | grep  -q"$TEST_USERNAME"; then
         log_success "Регистрация успешна"
     else
         log_error "Ошибка регистрации"
@@ -85,7 +85,7 @@ test_http() {
 
     # 2. Вход
     log_info "2. Тестирование входа"
-    if blog-cli login --username "$TEST_USERNAME" --password "$TEST_PASSWORD" | grep "$TEST_USERNAME"; then
+    if blog-cli login --username "$TEST_USERNAME" --password "$TEST_PASSWORD" | grep -q "$TEST_USERNAME"; then
         log_success "Вход успешен"
     else
         log_error "Ошибка входа"

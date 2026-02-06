@@ -1,9 +1,7 @@
 use std::error::Error;
-use chrono::Duration;
 use clap::Parser;
 use blog_client::clients::client::{BlogClient, Transport};
 use blog_client::error::BlogClientError;
-use blog_client::models::models::Response;
 use crate::cli::{Cli, Commands};
 
 
@@ -15,7 +13,7 @@ async fn main() ->Result<(), Box<dyn Error>>{
     let cli = Cli::parse();
     // Определяем адрес сервера
     let server_address = if cli.grpc {
-        cli.server.unwrap_or_else(|| "localhost:50051".to_string())
+        cli.server.unwrap_or_else(|| "http://localhost:50051".to_string())
     } else {
         cli.server.unwrap_or_else(|| "http://127.0.0.1:3000".to_string())
     };
@@ -70,8 +68,16 @@ async fn main() ->Result<(), Box<dyn Error>>{
         }
         Commands::Update { id, title, content } => {
             if let Some(_) = client.get_token().await {
-                if let Some(title) = title && let Some(content) = content {
-                    client.update_post(*id, title, content).await
+                let response = client.get_post(*id).await?;
+                if let Some(id) = response.id &&  let Some(mut post_title) = response.title
+                 && let Some (mut post_content) = response.content && id == id {
+                    if let Some(title) = title {
+                        post_title = title.clone();
+                    }
+                    if let Some(content) = content {
+                        post_content = content.clone();
+                    }
+                    client.update_post(id, &post_title, &post_content).await
                 }
                 else {
                     Err(BlogClientError::InvalidRequest("Not data post update".to_string()))
@@ -82,7 +88,14 @@ async fn main() ->Result<(), Box<dyn Error>>{
         }
         Commands::Delete { id } => {
             if let Some(_) = client.get_token().await {
-                client.delete_post(*id).await
+                let result = client.delete_post(*id).await;
+                if result.is_ok(){
+                    println!("Post {} deleted", id);
+                    client.list_posts(Some(10), Some(0)).await
+                }
+                else {
+                    result
+                }
             } else {
                 Err(BlogClientError::Unauthorized("Token required. Please login first.".to_string()))
             }

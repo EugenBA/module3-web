@@ -4,7 +4,6 @@ use crate::blog::proto_blog_service_client::ProtoBlogServiceClient;
 use crate::blog::*;
 use crate::error::BlogClientError;
 use crate::models::models::{Response, Post};
-use std::vec;
 use tonic::{Request, metadata::MetadataValue, transport::Channel};
 
 #[derive(Clone)]
@@ -53,7 +52,13 @@ impl GrpcClient {
         let token = response.token;
         let user = response.username;
 
-        Ok(Response { posts: None, id: None, token: Some(token), user: Some(user)})
+        Ok(Response { 
+            posts: None, 
+            id: None, 
+            token: Some(token), 
+            title: None, 
+            user: Some(user), 
+            content: None })
     }
 
     pub(crate) async fn login(
@@ -73,7 +78,12 @@ impl GrpcClient {
         let token = response.token;
         let user = response.username;
 
-        Ok(Response { posts: None, id: None, token: Some(token), user: Some(user) })
+        Ok(Response { posts: None, 
+            id: None, 
+            token: Some(token), 
+            title: None, 
+            user: Some(user), 
+            content: None })
     }
 
     pub(crate) async fn create_post(
@@ -92,12 +102,7 @@ impl GrpcClient {
         let response = client.create_post(request).await?;
         let response = response.into_inner();
         if let Some(post) = response.post {
-            Ok(Response {
-                posts: Some(vec![Post::from(post)]),
-                id: None,
-                token: None,
-                user: None,
-            })
+            Ok(Response::from(post))
         } else {
             Err(BlogClientError::CreatePostError("No post returned".to_string()))
         }
@@ -110,12 +115,7 @@ impl GrpcClient {
         let response = client.get_post(request).await?;
         let response = response.into_inner();
         if let Some(post) = response.post {
-            Ok(Response {
-                posts: Some(vec![Post::from(post)]),
-                id: None,
-                token: None,
-                user: None,
-            })
+            Ok(Response::from(post))
         } else {
             Err(BlogClientError::NotFound("No post returned".to_string()))
         }
@@ -139,12 +139,7 @@ impl GrpcClient {
         let response = client.update_post(request).await?;
         let response = response.into_inner();
         if let Some(post) = response.post {
-            Ok(Response {
-                id: None,
-                posts: Some(vec![Post::from(post)]),
-                token: None,
-                user: None,
-            })
+            Ok(Response::from(post))
         } else {
             Err(BlogClientError::NotFound("No post returned".to_string()))
         }
@@ -158,9 +153,11 @@ impl GrpcClient {
         client.delete_post(request).await?;
         Ok(Response {
             posts: None,
-            id: None,
+            id: Some(id),
             token: None,
+            title: None,
             user: None,
+            content: None,
         })
     }
 
@@ -184,7 +181,10 @@ impl GrpcClient {
             id: None,
             posts: Some(posts),
             token: None,
-            user: None })
+            title: None,
+            user: None,
+            content: None,
+        })
     }
 }
 }

@@ -59,9 +59,6 @@ pub(crate) enum Commands {
 #[command(name = "blog-client")]
 #[command(about = "Blog client application", version = "1.0")]
 pub(crate) struct Cli {
-    /// Использовать gRPC транспорт вместо HTTP
-    #[arg(long)]
-    pub(crate) grpc: bool,
 
     /// Адрес сервера (опциональный)
     #[arg(long)]
@@ -70,5 +67,9 @@ pub(crate) struct Cli {
     /// Подкоманда для выполнения
     #[command(subcommand)]
     pub(crate) command: Commands,
+
+    /// Использовать gRPC транспорт вместо HTTP
+    #[arg(long)]
+    pub(crate) grpc: bool,
 }
 

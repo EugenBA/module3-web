@@ -32,7 +32,7 @@ impl HttpClient {
         token: Option<String>
     ) -> Result<T, BlogClientError>
     where
-        T: serde::de::DeserializeOwned,
+        T: serde::de::DeserializeOwned + Default
     {
         let url = format!("{}{}", self.base_url, path);
         let mut request = self.client.request(method, &url);
@@ -48,8 +48,11 @@ impl HttpClient {
         let status = response.status();
 
         if self.client.status_ok(status) {
-            let data = response.json::<T>().await?;
-            Ok(data)
+            if let Ok(data) = response.json::<T>().await{
+                Ok(data)
+            }
+            else {
+                Ok(T::default()) }
         } else {
             let error_text = response.text().await?;
             Err(BlogClientError::from_http_status(status, error_text))

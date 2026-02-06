@@ -167,12 +167,27 @@ impl From<ProtoPost> for Post{
 /// - `token` (Option<String>): Optional field for a token associated with the response, such as
 ///   an authentication or session token. May be `None` if the token is not required or available.
 /// ```
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Response {
     pub posts: Option<Vec<Post>>,
     pub id: Option<i64>,
     pub user: Option<String>,
     pub token: Option<String>,
+    pub title: Option<String>,
+    pub content: Option<String>,
+}
+#[cfg(not(target_arch = "wasm32"))]
+impl From<ProtoPost> for Response{
+    fn from(value: ProtoPost) -> Self {
+        Self{
+            posts: None,
+            id: Some(value.id),
+            user: None,
+            token: None,
+            title: Some(value.title),
+            content: Some(value.content),
+        }
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -191,6 +206,14 @@ impl Response {
             for post in posts {
                 output.push_str(&format!("Post ID: {}\nTitle: {}\nContent: {}\n", post.id, post.title, post.content));
                 output.push_str("------------------------------\n");
+            }
+        }
+        else {
+            if let Some(id) = &self.id && let Some(title) = &self.title && let Some(content) = &self.content {
+                output.push_str(&format!("Post ID: {}\nTitle: {}\nContent: {}\n", id, title, content));
+            }
+            else {
+                output.push_str("No posts found\n");
             }
         }
         output
