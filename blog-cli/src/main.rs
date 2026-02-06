@@ -8,7 +8,6 @@ use crate::cli::{Cli, Commands};
 
 
 mod cli;
-mod format_output;
 
 
 #[tokio::main]
