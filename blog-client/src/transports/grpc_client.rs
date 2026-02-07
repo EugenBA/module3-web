@@ -1,3 +1,6 @@
+//! Модуль для gRPC транспорта
+//!
+//! Предоставляет функциональность для взаимодействия с бэкэндом по gRPC
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod grpc_client {
 use crate::blog::proto_blog_service_client::ProtoBlogServiceClient;

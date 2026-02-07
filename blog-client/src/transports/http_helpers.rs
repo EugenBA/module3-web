@@ -1,4 +1,7 @@
-
+//! Модуль для поддержки кросфункциональных библиотек для Wasm32 и не Wasm32 архитектуры
+//!
+//! Предоставляет функциональность для взаимодействия с бэкэндом по HTTP (Wasm32 и не Wasm32 архитектуры)
+//!
 #[cfg(not(target_arch = "wasm32"))]
 use reqwest::{Method, RequestBuilder, Client, Response};
 #[cfg(target_arch = "wasm32")]
@@ -102,39 +105,24 @@ impl HttpRequest for HttpClientRequest {
 #[cfg(target_arch = "wasm32")]
 impl HttpRequest for HttpClientRequest{
     fn new(timeout: Duration) -> Self {
-        let user_agent = format!("blog-client/{}", env!("CARGO_PKG_VERSION"));
         Self {
             client: RequestBuilder::new("/"),
             timeout
         }
     }
     fn request(&self, method: HttpRequestMethod, url: &str) -> HttpClientRequestBuilder {
-      //  let user_agent = format!("blog-client/{}", env!("CARGO_PKG_VERSION"));
         let request_builder = match method {
             HttpRequestMethod::GET => {
-                Request::get(url)//.header(
-                    //"User-Agent",
-                  //  user_agent.as_str(),
-
-               // )
+                Request::get(url)
             }
             HttpRequestMethod::POST => {
-                Request::post(url)//.header(
-                   // "User-Agent",
-                  //  user_agent.as_str(),
-              //  )
+                Request::post(url)
             }
             HttpRequestMethod::PUT => {
-                Request::put(url)//.header(
-                   // "User-Agent",
-                   // user_agent.as_str(),
-               // )
+                Request::put(url)
             }
             HttpRequestMethod::DELETE => {
-                Request::delete(url)//.header(
-                 //   "User-Agent",
-                  //  user_agent.as_str(),
-                //)
+                Request::delete(url)
             }
         };
         let request = Request::try_from(request_builder).expect(

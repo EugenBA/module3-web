@@ -3,7 +3,6 @@ use wasm_bindgen::prelude::*;
 use blog_client::clients::client::{BlogClient, Transport};
 use blog_client::models::models::StorageUser;
 use core::time::Duration;
-use log::{info, error, warn, debug, trace};
 
 // Указываем, что эту функцию можно вызывать из JS
 #[wasm_bindgen]
@@ -25,7 +24,6 @@ impl WasmBlogClient {
         let http_client = BlogClient::new(transport, timeout)
             .await.map_err(|e| JsValue::from_str(&format!("{}", e)))?;
         let _ = http_client.load_token().await;
-        wasm_logger::init(wasm_logger::Config::new(log::Level::Trace));
         Ok(Self { http_client })
     }
     #[wasm_bindgen]
@@ -56,9 +54,8 @@ impl WasmBlogClient {
 
     #[wasm_bindgen]
     pub async fn delete_post(&self, id: i64) -> Result<JsValue, JsValue> {
-        let result = self.http_client.delete_post(id).await;
-        trace!("Delete result {:?}", result);
-;        Ok(JsValue::from_str("ok"))
+        self.http_client.delete_post(id).await.map_err(|e| JsValue::from_str(&format!("{}", e)))?;
+        Ok(JsValue::from_str(format!("Post with id {} deleted.", id).as_str()))
     }
 
     #[wasm_bindgen]

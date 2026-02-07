@@ -1,3 +1,7 @@
+//! Модуль для HTTP транспорта
+//!
+//! Предоставляет функциональность для взаимодействия с бэкэндом по HTTP
+
 use crate::error::BlogClientError;
 use crate::models::models::{
     Response, CreatePostRequest, LoginRequest, RegisterUserRequest, UpdatePostRequest,

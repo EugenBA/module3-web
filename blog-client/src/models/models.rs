@@ -1,4 +1,7 @@
-use std::fmt::Display;
+//! Модуль для взаимодействия с бэкэндом
+//!
+//! Предоставляет структуры для взаимодействия с бэкэндом
+//!
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::Duration;
 use chrono::{DateTime, Utc};
@@ -7,40 +10,18 @@ use serde::{Deserialize, Serialize};
 use crate::blog::ProtoPost;
 
 /// ```
-/// Represents a user entity with associated properties.
+/// Представляет поля для пользователя
 ///
-/// This struct is used to store and manage information about a user, including
-/// their unique identifier, username, email address, and the timestamp of when
-/// the user was created.
+/// # Трейты
 ///
-/// # Fields
 ///
-/// * `id` (`i64`): 
-///   A unique identifier for the user, typically represented as a 64-bit integer.
+/// * `Debug`
+/// * `Clone`
+/// * `Serialize`
+/// * `Deserialize`
 ///
-/// * `username` (`String`): 
-///   The username of the user, which is a human-readable identifier for the user.
+/// # Пример
 ///
-/// * `email` (`String`): 
-///   The email address of the user, which is used as a point of contact or for 
-///   various account-related functions.
-///
-/// * `created_at` (`DateTime<Utc>`): 
-///   A timestamp representing when the user was created,stored as a `DateTime` object 
-///   in UTC format.
-///
-/// # Traits
-///
-/// This struct derives the following traits:
-///
-/// * `Debug`: Enables formatting and debugging of the struct.
-/// * `Clone`: Allows the struct to be duplicated.
-/// * `Serialize`: Enables the struct to be serialized, typically for converting into formats like JSON.
-/// * `Deserialize`: Enables the struct to be deserialized from formats like JSON.
-///
-/// # Example
-///
-/// ```
 /// use chrono::Utc;
 /// use serde::{Serialize, Deserialize};
 ///
@@ -64,39 +45,28 @@ use crate::blog::ProtoPost;
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
+    /// ID пользователя
     pub id: i64,
+    /// Имя пользователя
     pub username: String,
+    /// Электроная почта
     pub email: String,
+    /// дата создания
     pub created_at: DateTime<Utc>,
 }
 
 /// ```rust
 ///
-/// A data structure representing a blog post or article.
+/// Структура предосталяет данные поста
 ///
-/// This struct is used to model information about a post, including its
-/// metadata, content, and association with an author. It is serializable
-/// and deserializable for use in various contexts, such as APIs or
-/// databases.
+/// # Трейты
 ///
-/// # Fields
+/// * `Debug`
+/// * `Clone`
+/// * `Serialize`
+/// * `Deserialize`
 ///
-/// * `id` - A unique identifier for the post. Typically corresponds to a primary key in a database.
-/// * `title` - The title of the post.
-/// * `content` - The main content or body of the post.
-/// * `author_id` - A unique identifier for the author of the post. This is used to associate the post with a user or creator.
-/// * `created_at` - A timestamp indicating when the post was created. The timestamp is in UTC.
-/// * `updated_at` - An optional timestamp indicating the last time the post was updated. If the post has not been updated, this field is `None`.
-///
-/// # Traits
-///
-/// This struct derives the following traits:
-/// * `Debug` - Enables formatting with `{:?}` for debugging purposes.
-/// * `Clone` - Allows the struct to be cloned, creating an identical copy.
-/// * `Serialize` - Allows the struct to be serialized, e.g., to JSON or other formats.
-/// * `Deserialize` - Allows the struct to be deserialized from supported data formats.
-///
-/// # Example
+/// # Пример
 ///
 /// ```rust
 /// use chrono::Utc;
@@ -116,11 +86,17 @@ pub struct User {
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Post {
+    /// идентификато поста
     pub id: i64,
+    /// заголовок
     pub title: String,
+    /// тест поста
     pub content: String,
+    /// идентификатор автора
     pub author_id: i64,
+    /// дата создания
     pub created_at: DateTime<Utc>,
+    /// дата корректировки
     pub updated_at: Option<DateTime<Utc>>,
 }
 #[cfg(not(target_arch = "wasm32"))]
@@ -152,28 +128,22 @@ impl From<ProtoPost> for Post{
 }
 
 /// ```
-/// Represents a response structure that encapsulates data associated with a user's request.
+/// Структура для данных ответа
 ///
-/// This struct is Serializable, Deserializable, Debuggable, and Cloneable, making it versatile for 
-/// various use cases such as API responses and inter-service communication.
-///
-/// Fields:
-/// - `posts` (Option<Vec<Post>>): Optional field representing a list of `Post` objects. This may
-///   contain data for related posts or may be `None` if no posts are available.
-/// - `id` (Option<i64>): Optional field representing an identifier for the response, user, or
-///   associated entity. This may be `None` if the ID is not applicable or provided.
-/// - `user` (Option<String>): Optional field containing the username or user identifier. Can be
-///   `None` if the user information is not provided.
-/// - `token` (Option<String>): Optional field for a token associated with the response, such as
-///   an authentication or session token. May be `None` if the token is not required or available.
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Response {
+    /// список постов
     pub posts: Option<Vec<Post>>,
+    /// идентификатор
     pub id: Option<i64>,
+    /// имя пользователя
     pub user: Option<String>,
+    /// токен
     pub token: Option<String>,
+    /// заголовок
     pub title: Option<String>,
+    /// текст поста
     pub content: Option<String>,
 }
 #[cfg(not(target_arch = "wasm32"))]
@@ -192,6 +162,36 @@ impl From<ProtoPost> for Response{
 
 #[cfg(not(target_arch = "wasm32"))]
 impl Response {
+    /// ```rust
+    /// Форматирование вывода данных cli
+    ///
+    ///
+    /// # Возврат
+    ///
+    /// Тип `String`
+    ///
+    ///
+    /// # Пример
+    ///
+    /// ```rust
+    /// let output = user.format_output();
+    /// println!("{}", output);
+    ///
+    /// ```plaintext
+    /// User ID: 123
+    /// User name: John Doe
+    /// Posts:
+    /// ------------------------------
+    /// Post ID: 1
+    /// Title: My First Post
+    /// Content: This is the content of the first post.
+    /// ------------------------------
+    /// Post ID: 2
+    /// Title: Second Post
+    /// Content: Another post's content.
+    /// ------------------------------
+    /// ```
+    /// ```
     pub fn format_output(&self) -> String {
         let mut output = String::new();
         if let Some(posts) = &self.posts {
@@ -221,31 +221,18 @@ impl Response {
 }
 
 /// ```
-/// Represents a request payload for registering a new user.
+/// Структура для запроса регистрации пользователя
 ///
-/// This struct is used to encapsulate the necessary information
-/// required during user registration, such as username, email, 
-/// and password.
 ///
-/// # Fields
+/// # Трайты
 ///
-/// * `username` - A string representing the desired username of the new user.
-/// * `email` - A string containing the email address of the new user.
-/// * `password` - A string holding the plain-text password for the new account, 
-///                which should be securely handled.
+/// * `Debug`
+/// * `Clone`
+/// * `Serialize`
+/// * `Deserialize`
 ///
-/// # Traits
+/// # Пример
 ///
-/// * `Debug` - Enables printing the struct for debugging purposes.
-/// * `Clone` - Allows for creating a duplicate of the struct.
-/// * `Serialize` - Allows the struct to be serialized into formats 
-///                 like JSON.
-/// * `Deserialize` - Allows the struct to be deserialized from formats 
-///                   like JSON.
-///
-/// # Example
-///
-/// ```
 /// use your_crate::RegisterUserRequest;
 ///
 /// let request = RegisterUserRequest {
@@ -259,32 +246,19 @@ impl Response {
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RegisterUserRequest {
+    /// имя пользователя
     pub username: String,
+    /// email
     pub email: String,
+    /// пароль
     pub password: String,
 }
 
 /// ```rust
-/// Represents a login request payload.
+/// Структура для данных запроса входа
 ///
-/// This struct is used to encapsulate the username and password 
-/// provided by a user attempting to log in. It derives several traits 
-/// to enable debugging, cloning, and serialization.
 ///
-/// # Derived Traits
-/// - `Debug`: Allows for formatting the struct using the `{:?}` formatter.
-/// - `Clone`: Enables deep cloning of the struct.
-/// - `Serialize` and `Deserialize`: Facilitates serialization and deserialization 
-///   for use with formats like JSON.
-///
-/// # Fields
-/// - `username` (`String`): 
-///   The username provided by the user during login.
-/// - `password` (`String`): 
-///   The password associated with the username.
-///
-/// # Examples
-/// ```
+/// # Пример
 /// use serde_json;
 /// use your_crate::LoginRequest;
 ///
@@ -305,34 +279,27 @@ pub struct RegisterUserRequest {
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LoginRequest {
+    /// имя пользователя
     pub username: String,
+    /// пароль
     pub password: String,
 }
 
 /// ```rust
-/// Represents a request to create a new post.
+/// Структура для запроса создания поста
 ///
-/// # Fields
 ///
-/// * `title` - A `String` containing the title of the post. 
-///   This field is required and should not be empty.
-///
-/// * `content` - A `String` containing the content/body of the post.
-///   This field is required and should not be empty.
-///
-/// # Derives
+/// # Трейты
 ///
 /// * `Debug` - Allows formatting of the structure for debugging purposes.
 /// * `Clone` - Enables deep copying of the structure.
 /// * `Serialize` - Allows the structure to be serialized (e.g., for converting into JSON).
 /// * `Deserialize` - Allows the structure to be deserialized (e.g., for converting from JSON).
 ///
-/// # Usage
+/// # Пример
 ///
-/// This structure is typically used as part of an API for creating posts. 
-/// Ensure you validate the fields before processing the request.
 ///
-/// ```
+/// ```rust
 /// let create_post_request = CreatePostRequest {
 ///     title: String::from("My First Post"),
 ///     content: String::from("This is the content of my first post."),
@@ -341,100 +308,62 @@ pub struct LoginRequest {
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreatePostRequest {
+    /// заголовок поста
     pub title: String,
+    /// тест поста
     pub content: String,
 }
 
 /// ```rust
-/// A data structure representing a request to update a blog post.
+/// Структура запроса на обновления поста
 ///
-/// This structure is used to encapsulate the data required for updating an existing post,
-/// including the post's unique identifier, title, and content. It is serializable and 
-/// deserializable to facilitate communication between services, and can also be cloned and 
-/// debugged for development purposes.
-///
-/// # Fields
-///
-/// * `id` - The unique identifier of the post to be updated. This value must correspond to an 
-///          existing post in the system.
-/// * `title` - The new title for the post. This should be a non-empty string representing the 
-///             desired title.
-/// * `content` - The updated content of the post. This should be a non-empty string containing
-///               the body of the post.
-///
-/// # Traits
+/// # Трейты
 ///
 /// The `UpdatePostRequest` struct derives the following traits:
 ///
-/// * `Debug` - Enables formatting of the struct using the `{:?}` formatter, useful during debugging.
-/// * `Clone` - Allows for creating duplicate instances of the struct.
-/// * `Serialize` - Enables converting the struct into a format suitable for transmission or storage, 
-///                 such as JSON.
-/// * `Deserialize` - Allows for creating an instance of the struct from serialized data, such as JSON.
+/// * `Debug`
+/// * `Clone`
+/// * `Serialize`
+/// * `Deserialize`
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdatePostRequest {
+    /// идентификатор
     pub id: i64,
+    /// заголовок поста
     pub title: String,
+    /// текст поста
     pub content: String,
 }
 
 /// ```
-/// Represents the response structure for a paginated list of posts.
+/// Структура ответа списка постов
 ///
-/// This struct is typically used to return data from an API endpoint that
-/// retrieves a collection of posts. It includes the list of posts as well
-/// as pagination metadata. It derives common traits for flexibility
-/// in debugging, cloning, and serialization.
 ///
-/// # Fields
+/// # Трейты
 ///
-/// * `posts` - A vector containing the list of posts (`Post` objects) retrieved
-///   in the current response.
-/// * `total` - An optional total count of posts available in the data source
-///   (useful for client-side pagination). If `None`, the total count is unknown
-///   or not provided.
-/// * `offset` - The starting index (zero-based) of the posts returned in this
-///   response. This is usually used for paginated queries to indicate the
-///   position in the full list.
-/// * `limit` - The maximum number of posts that can be included in the
-///   response. This defines the page size or batch size for the retrieval.
-///
-/// # Traits
-///
-/// - `Debug`: Enables debug formatting for `ListPostsResponse`.
-/// - `Clone`: Allows creating a deep copy of `ListPostsResponse`.
-/// - `Serialize` and `Deserialize`: Enables serialization and deserialization
-///   support for the struct, which is particularly useful for APIs that exchange
-///   JSON or other structured data formats.
+/// - `Debug`
+/// - `Clone`
+/// - `Serialize`
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ListPostsResponse {
+    /// список постов
     pub posts: Vec<Post>,
+    /// общее количество постов
     pub total: Option<u64>,
+    /// смещение
     pub offset: i64,
+    /// ограничение вывода
     pub limit: i64,
 }
 
 /// ```
-/// Represents a request structure for listing posts with optional filtering and pagination.
+/// Структура для запроса списка постов
 ///
-/// This structure is used to specify query parameters when fetching a list of posts
-/// from a data source. It allows for optional pagination and filtering by the author's ID.
 ///
-/// # Fields
+/// # Пример
 ///
-/// * `offset` - An optional parameter specifying the offset to start fetching posts from. 
-///   Typically used for pagination. Accepts an `Option<i64>`.
-///
-/// * `limit` - An optional parameter defining the maximum number of posts to fetch.
-///   Useful for limiting the result set size. Accepts an `Option<i64>`.
-///
-/// * `author_id` - An optional parameter to filter the posts by the author's unique identifier.
-///   Accepts an `Option<String>`.
-///
-/// # Example
-/// ```
 /// use your_crate::ListPostsRequest;
 ///
 /// let request = ListPostsRequest {
@@ -446,38 +375,31 @@ pub struct ListPostsResponse {
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ListPostsRequest {
+    /// смещения списка постов
     pub offset: Option<i64>,
+    /// ограничение выборки
     pub limit: Option<i64>,
+    /// идентификатор автора поста
     pub author_id: Option<String>,
 }
 
 /// ```rust
-/// A struct representing a user for storage in a WebAssembly (wasm32) environment.
+/// Структра для храненданных в глобальном хранилище, только для архитектуры wasm32
 ///
-/// This struct is only compiled and used when the target architecture 
-/// is `wasm32`. It is serializable and deserializable, making it suitable 
-/// for use in scenarios where data serialization is required.
 ///
-/// # Attributes
+/// # Трейты
 ///
-/// * `id` - A 64-bit integer representing the unique identifier of the user.
-/// * `username` - A `String` representing the username of the user.
+/// * `Debug`
+/// * `Clone`
+/// * `Serialize`
+/// * `Deserialize`
 ///
-/// # Derives
-///
-/// * `Debug` - Enables formatting of the struct using the `{:?}` formatter.
-/// * `Clone` - Allows the struct to be cloned, producing a copy of its value.
-/// * `Serialize` - Enables the struct to be serialized, typically for storage or transmission.
-/// * `Deserialize` - Enables the struct to be deserialized, reconstructing it from serialized data.
-///
-/// # Conditional Compilation
-///
-/// The `#[cfg(target_arch = "wasm32")]` attribute ensures that this struct 
-/// is only included in builds targeting WebAssembly (wasm32).
 /// ```
 #[cfg(target_arch = "wasm32")]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StorageUser {
+    /// идентификатор пользователя
     pub id: i64,
+    /// имя пользователя
     pub username: String,
 }
