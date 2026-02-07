@@ -11,7 +11,7 @@ pub(crate) struct AppConfig {
 }
 
 impl AppConfig {
-    pub fn from_env() -> anyhow::Result<Self> {
+    pub(crate) fn from_env() -> anyhow::Result<Self> {
         let database_url = std::env::var("DATABASE_URL")?;
         let host = std::env::var("HOST").unwrap_or_else(|_| "127.0.0.1".into());
         let port = std::env::var("PORT")

@@ -1,3 +1,8 @@
+//! Сервер блога
+//!
+//! Реализует сервер с танспортом HTTP и gRPC для блогинга
+
+#![warn(missing_docs)]
 mod application;
 mod data;
 mod domain;
@@ -5,6 +10,7 @@ mod infrastructure;
 mod presentation;
 mod server;
 
+#[allow(missing_docs)]
 pub mod blog {
     tonic::include_proto!("blog");
 }

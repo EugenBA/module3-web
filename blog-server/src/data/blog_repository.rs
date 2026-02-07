@@ -4,7 +4,7 @@ use sqlx::{PgPool, Row};
 use tonic::async_trait;
 
 #[async_trait]
-pub trait BlogRepository: Send + Sync {
+pub(crate) trait BlogRepository: Send + Sync {
     async fn create(&self, author_id: i64, crete_post: CreatePost) -> Result<Post, DomainError>;
     async fn get_post(&self, post_id: i64) -> Result<Option<Post>, DomainError>;
     async fn update_post(
@@ -136,7 +136,8 @@ impl BlogRepository for InDbPostRepository {
         .await?;
 
         Ok(row
-            .into_iter().map(|r| Post {
+            .into_iter()
+            .map(|r| Post {
                 id: r.get("id"),
                 title: r.get("title"),
                 content: r.get("content"),

@@ -3,7 +3,7 @@ use sqlx::{PgPool, Row};
 use tonic::async_trait;
 
 #[async_trait]
-pub trait UserRepository: Send + Sync {
+pub(crate) trait UserRepository: Send + Sync {
     async fn create(&self, user: User) -> Result<User, DomainError>;
     async fn find_by_name(&self, name: &str) -> Result<Option<User>, DomainError>;
     async fn find_by_id(&self, id: i64) -> Result<Option<User>, DomainError>;

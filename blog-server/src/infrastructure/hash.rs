@@ -3,7 +3,7 @@ use argon2::{
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
 };
 
-pub fn hash_password(password: &str) -> Result<String, argon2::password_hash::Error> {
+pub(crate) fn hash_password(password: &str) -> Result<String, argon2::password_hash::Error> {
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
     let hash = argon2
@@ -12,7 +12,10 @@ pub fn hash_password(password: &str) -> Result<String, argon2::password_hash::Er
     Ok(hash)
 }
 
-pub fn verify_password(password: &str, hash: &str) -> Result<bool, argon2::password_hash::Error> {
+pub(crate) fn verify_password(
+    password: &str,
+    hash: &str,
+) -> Result<bool, argon2::password_hash::Error> {
     let parsed = PasswordHash::new(hash)?;
     let argon2 = Argon2::default();
     Ok(argon2.verify_password(password.as_bytes(), &parsed).is_ok())

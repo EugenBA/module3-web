@@ -15,12 +15,12 @@ impl<R> BlogService<R>
 where
     R: BlogRepository + 'static,
 {
-    pub fn new(repo: Arc<R>) -> Self {
+    pub(crate) fn new(repo: Arc<R>) -> Self {
         Self { repo }
     }
 
     #[instrument(skip(self))]
-    pub async fn create_post(
+    pub(crate) async fn create_post(
         &self,
         title: String,
         content: String,
@@ -35,7 +35,7 @@ where
     }
 
     #[instrument(skip(self))]
-    pub async fn update_post(
+    pub(crate) async fn update_post(
         &self,
         post_id: i64,
         author_id: i64,
@@ -49,7 +49,7 @@ where
     }
 
     #[instrument(skip(self))]
-    pub async fn delete_post(&self, post_id: i64, author_id: i64) -> Result<(), BlogError> {
+    pub(crate) async fn delete_post(&self, post_id: i64, author_id: i64) -> Result<(), BlogError> {
         Ok(self
             .repo
             .delete_post(post_id, author_id)
@@ -58,7 +58,7 @@ where
     }
 
     #[instrument(skip(self))]
-    pub async fn get_posts(&self, limit: i64, offset: i64) -> Result<Vec<Post>, BlogError> {
+    pub(crate) async fn get_posts(&self, limit: i64, offset: i64) -> Result<Vec<Post>, BlogError> {
         Ok(self
             .repo
             .get_posts(limit, offset)
@@ -67,7 +67,7 @@ where
     }
 
     #[instrument(skip(self))]
-    pub async fn get_post(&self, post_id: i64) -> Result<Option<Post>, BlogError> {
+    pub(crate) async fn get_post(&self, post_id: i64) -> Result<Option<Post>, BlogError> {
         Ok(self.repo.get_post(post_id).await.map_err(BlogError::from)?)
     }
 }

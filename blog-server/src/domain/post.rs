@@ -38,7 +38,7 @@ pub(crate) struct GetPaginationPost {
 }
 
 impl CreatePost {
-    pub fn new(title: String, content: String) -> Self {
+    pub(crate) fn new(title: String, content: String) -> Self {
         Self { title, content }
     }
 }

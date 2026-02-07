@@ -3,11 +3,11 @@
 //! Предоставляет структуры для взаимодействия с бэкэндом
 //!
 #[cfg(not(target_arch = "wasm32"))]
-use std::time::Duration;
+use crate::blog::ProtoPost;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 #[cfg(not(target_arch = "wasm32"))]
-use crate::blog::ProtoPost;
+use std::time::Duration;
 
 /// ```
 /// Представляет поля для пользователя
@@ -100,31 +100,30 @@ pub struct Post {
     pub updated_at: Option<DateTime<Utc>>,
 }
 #[cfg(not(target_arch = "wasm32"))]
-impl Post{
-    fn timestamp_to_chrono(timestamp: Option<prost_types::Timestamp>) -> DateTime<Utc>{
+impl Post {
+    fn timestamp_to_chrono(timestamp: Option<prost_types::Timestamp>) -> DateTime<Utc> {
         if let Some(ts) = timestamp {
             let system_time = std::time::UNIX_EPOCH
                 + Duration::from_secs(ts.seconds as u64)
                 + Duration::from_nanos(ts.nanos as u64);
             DateTime::<Utc>::from(system_time)
-        }
-        else {
+        } else {
             DateTime::<Utc>::default()
         }
     }
 }
 #[cfg(not(target_arch = "wasm32"))]
-impl From<ProtoPost> for Post{
+impl From<ProtoPost> for Post {
     fn from(value: ProtoPost) -> Self {
-        Self{ id: value.id,
+        Self {
+            id: value.id,
             title: value.title,
             content: value.content,
             author_id: value.author_id,
             created_at: Post::timestamp_to_chrono(value.created_at),
-            updated_at: Some(Post::timestamp_to_chrono(value.updated_at))
+            updated_at: Some(Post::timestamp_to_chrono(value.updated_at)),
         }
     }
-
 }
 
 /// ```
@@ -147,9 +146,9 @@ pub struct Response {
     pub content: Option<String>,
 }
 #[cfg(not(target_arch = "wasm32"))]
-impl From<ProtoPost> for Response{
+impl From<ProtoPost> for Response {
     fn from(value: ProtoPost) -> Self {
-        Self{
+        Self {
             posts: None,
             id: Some(value.id),
             user: None,
@@ -204,15 +203,22 @@ impl Response {
             output.push_str("Posts:\n");
             output.push_str("------------------------------\n");
             for post in posts {
-                output.push_str(&format!("Post ID: {}\nTitle: {}\nContent: {}\n", post.id, post.title, post.content));
+                output.push_str(&format!(
+                    "Post ID: {}\nTitle: {}\nContent: {}\n",
+                    post.id, post.title, post.content
+                ));
                 output.push_str("------------------------------\n");
             }
-        }
-        else {
-            if let Some(id) = &self.id && let Some(title) = &self.title && let Some(content) = &self.content {
-                output.push_str(&format!("Post ID: {}\nTitle: {}\nContent: {}\n", id, title, content));
-            }
-            else {
+        } else {
+            if let Some(id) = &self.id
+                && let Some(title) = &self.title
+                && let Some(content) = &self.content
+            {
+                output.push_str(&format!(
+                    "Post ID: {}\nTitle: {}\nContent: {}\n",
+                    id, title, content
+                ));
+            } else {
                 output.push_str("No posts found\n");
             }
         }

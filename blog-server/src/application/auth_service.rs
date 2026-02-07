@@ -16,16 +16,19 @@ impl<R> AuthService<R>
 where
     R: UserRepository + 'static,
 {
-    pub fn new(repo: Arc<R>, keys: JwtService) -> Self {
+    pub(crate) fn new(repo: Arc<R>, keys: JwtService) -> Self {
         Self { repo, keys }
     }
 
-    pub fn keys(&self) -> &JwtService {
+    pub(crate) fn keys(&self) -> &JwtService {
         &self.keys
     }
 
     #[instrument(skip(self))]
-    pub async fn register(&self, register_user: RegisterUser) -> Result<(i64, String), DomainError> {
+    pub(crate) async fn register(
+        &self,
+        register_user: RegisterUser,
+    ) -> Result<(i64, String), DomainError> {
         let hash = hash_password(&register_user.password)
             .map_err(|err| DomainError::Internal(err.to_string()))?;
         let user = User::new(
@@ -34,16 +37,18 @@ where
             hash,
         );
         let user = self.repo.create(user).await.map_err(DomainError::from)?;
-        match self.keys
+        match self
+            .keys
             .generate_token(user.id, user.username.as_str())
-            .map_err(|err| DomainError::Internal(err.to_string())){
-            Ok(jwt) => { Ok((user.id, jwt))}
-            Err(e) => { Err(e)}
+            .map_err(|err| DomainError::Internal(err.to_string()))
+        {
+            Ok(jwt) => Ok((user.id, jwt)),
+            Err(e) => Err(e),
         }
     }
 
     #[instrument(skip(self))]
-    pub async fn login(&self, login_user: LoginUser) -> Result<(i64, String), DomainError> {
+    pub(crate) async fn login(&self, login_user: LoginUser) -> Result<(i64, String), DomainError> {
         let user = self
             .repo
             .find_by_name(&login_user.username.to_lowercase())
@@ -56,15 +61,17 @@ where
         if !is_valid {
             return Err(DomainError::Unauthorized);
         }
-        match self.keys
+        match self
+            .keys
             .generate_token(user.id, user.username.as_str())
-            .map_err(|err| DomainError::Internal(err.to_string())){
-            Ok(jwt) => { Ok((user.id, jwt))}
-            Err(e) => { Err(e)}
+            .map_err(|err| DomainError::Internal(err.to_string()))
+        {
+            Ok(jwt) => Ok((user.id, jwt)),
+            Err(e) => Err(e),
         }
     }
 
-    pub async fn get_user(&self, user_id: i64) -> Result<User, DomainError> {
+    pub(crate) async fn get_user(&self, user_id: i64) -> Result<User, DomainError> {
         self.repo
             .find_by_id(user_id)
             .await

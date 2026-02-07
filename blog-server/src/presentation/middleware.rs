@@ -13,7 +13,7 @@ use crate::data::user_repository::InDbUserRepository;
 use crate::infrastructure::jwt::JwtService;
 use crate::presentation::auth::extract_user_from_token;
 
-pub struct JwtAuthMiddleware {
+pub(crate) struct JwtAuthMiddleware {
     keys: JwtService,
 }
 
@@ -42,7 +42,7 @@ where
     }
 }
 
-pub struct JwtAuthService<S> {
+pub(crate) struct JwtAuthService<S> {
     service: Rc<RefCell<S>>,
     keys: JwtService,
 }

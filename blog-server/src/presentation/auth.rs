@@ -25,7 +25,7 @@ impl FromRequest for AuthenticatedUser {
     }
 }
 
-pub async fn extract_user_from_token(
+pub(crate) async fn extract_user_from_token(
     token: &str,
     keys: &JwtService,
     auth_service: &AuthService<InDbUserRepository>,

@@ -118,13 +118,13 @@ impl BlogClientError {
             _ => Self::Unknown(format!("HTTP {}: {}", status, message)),
         }
     }
- ///
- /// Конверитирует возврат статусов клиента в ошибки BlogClientError для архитектуры wasm32
- ///
- ///  - `404`: Maps to `Self::NotFound`
- ///  - `401` or `403`: Maps to `Self::Unauthorized`
- ///  - `400`: Maps to `Self::InvalidRequest`
- ///  - `409`: Maps to `Self::AlreadyExists`
+    ///
+    /// Конверитирует возврат статусов клиента в ошибки BlogClientError для архитектуры wasm32
+    ///
+    ///  - `404`: Maps to `Self::NotFound`
+    ///  - `401` or `403`: Maps to `Self::Unauthorized`
+    ///  - `400`: Maps to `Self::InvalidRequest`
+    ///  - `409`: Maps to `Self::AlreadyExists`
     #[cfg(target_arch = "wasm32")]
     pub fn from_http_status(status: u16, message: String) -> Self {
         match status {

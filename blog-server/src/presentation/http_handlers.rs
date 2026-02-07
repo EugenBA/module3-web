@@ -6,9 +6,7 @@ use crate::domain::error::BlogError;
 use crate::domain::post::{CreatePost, GetPaginationPost, ListPosts, UpdatePost};
 use crate::domain::user::{LoginUser, RegisterUser, TokenResponse};
 use crate::presentation::auth::AuthenticatedUser;
-use actix_web::{
-    HttpMessage, HttpRequest, HttpResponse, Responder, Scope, delete, get, post, put, web,
-};
+use actix_web::{HttpMessage, HttpRequest, HttpResponse, Responder, web};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use tracing::info;
@@ -17,8 +15,10 @@ use tracing::info;
 pub(crate) struct RequestId(pub String);
 
 #[derive(Debug, Serialize)]
-pub struct HealthResponse {
+pub(crate) struct HealthResponse {
+    /// поле статус
     pub status: &'static str,
+    /// поле метки времение
     pub timestamp: DateTime<Utc>,
 }
 
@@ -133,7 +133,7 @@ pub(crate) async fn register(
     Ok(HttpResponse::Ok().json(TokenResponse {
         token,
         user: payload.username.clone(),
-        id
+        id,
     }))
 }
 
@@ -151,7 +151,7 @@ pub(crate) async fn login(
     Ok(HttpResponse::Ok().json(TokenResponse {
         token,
         user: payload.username.clone(),
-        id
+        id,
     }))
 }
 

@@ -2,7 +2,7 @@
 //!
 //! Предоставляет функциональность для взаимодействия с бэкэндом
 
-use crate::models::models::{Response};
+use crate::models::models::Response;
 use crate::{error::BlogClientError, transports::http_client::HttpClient};
 use core::time::Duration;
 use std::sync::Arc;
@@ -16,9 +16,9 @@ use std::fs;
 use std::path::Path;
 
 #[cfg(target_arch = "wasm32")]
-use gloo_storage::{LocalStorage, Storage};
-#[cfg(target_arch = "wasm32")]
 use crate::models::models::StorageUser;
+#[cfg(target_arch = "wasm32")]
+use gloo_storage::{LocalStorage, Storage};
 
 /// ```rust
 /// Enum `Transport` служет для выбора типа транспорта коммуникации http/gprs
@@ -267,7 +267,7 @@ impl BlogClient {
     pub async fn set_token(&self, token: Option<String>) {
         *self.token.write().await = token.clone();
         if let Some(token) = token.clone() {
-                let _ = self.save_token(&token);
+            let _ = self.save_token(&token);
         }
     }
     /// ```rust
@@ -477,12 +477,20 @@ impl BlogClient {
             Self {
                 http_client: Some(client),
                 ..
-            } => client.create_post(title, content, self.get_token().await).await,
+            } => {
+                client
+                    .create_post(title, content, self.get_token().await)
+                    .await
+            }
             #[cfg(not(target_arch = "wasm32"))]
             Self {
                 grpc_client: Some(client),
                 ..
-            } => client.create_post(title, content, self.get_token().await).await,
+            } => {
+                client
+                    .create_post(title, content, self.get_token().await)
+                    .await
+            }
             _ => Err(BlogClientError::NoTransportConfigured),
         }
     }
@@ -560,12 +568,20 @@ impl BlogClient {
             Self {
                 http_client: Some(client),
                 ..
-            } => client.update_post(id, title, content, self.get_token().await).await,
+            } => {
+                client
+                    .update_post(id, title, content, self.get_token().await)
+                    .await
+            }
             #[cfg(not(target_arch = "wasm32"))]
             Self {
                 grpc_client: Some(client),
                 ..
-            } => client.update_post(id, title, content, self.get_token().await).await,
+            } => {
+                client
+                    .update_post(id, title, content, self.get_token().await)
+                    .await
+            }
             _ => Err(BlogClientError::NoTransportConfigured),
         }
     }
@@ -828,7 +844,6 @@ impl BlogClient {
     ///
     #[cfg(target_arch = "wasm32")]
     pub fn get_user(&self) -> Option<StorageUser> {
-        
         LocalStorage::get("blog_username").ok()
     }
 }

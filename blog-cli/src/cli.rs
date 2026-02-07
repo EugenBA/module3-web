@@ -59,7 +59,6 @@ pub(crate) enum Commands {
 #[command(name = "blog-client")]
 #[command(about = "Blog client application", version = "1.0")]
 pub(crate) struct Cli {
-
     /// Адрес сервера (опциональный)
     #[arg(long)]
     pub(crate) server: Option<String>,
@@ -72,4 +71,3 @@ pub(crate) struct Cli {
     #[arg(long)]
     pub(crate) grpc: bool,
 }
-
