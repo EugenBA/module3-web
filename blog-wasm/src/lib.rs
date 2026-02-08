@@ -201,7 +201,7 @@ impl WasmBlogClient {
             .get_post(id)
             .await
             .map_err(|e| JsValue::from_str(&format!("{}", e)))?;
-        Ok(serde_wasm_bindgen::to_value(&response.posts)?)
+        Ok(serde_wasm_bindgen::to_value(&response)?)
     }
 
     /// ```rust

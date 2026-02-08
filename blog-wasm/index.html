@@ -374,16 +374,20 @@
     };
 
     window.editPost = async function(id) {
-        const title = document.getElementById("t_" + id);
-        const content = document.getElementById("c_" + id);
 
         const editor_title = document.getElementById("post-title");
         const editor_content = document.getElementById("post-content");
         const editor_id = document.getElementById("post-id");
         const caption = document.getElementById("caption_edit_post");
-        editor_title.value = title.textContent;
-        editor_content.value = content.textContent;
         editor_id.value = id;
+        try {
+            const post = await client.get_post(BigInt(id));
+            editor_title.value = post.title;
+            editor_content.value = post.content;
+            clear_error();
+        } catch (error) {
+            show_error(error);
+        }
 
         const bt_create = document.getElementById("ct_create");
         const bt_update = document.getElementById("ct_update");
