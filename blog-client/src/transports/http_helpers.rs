@@ -1,0 +1,184 @@
+//! Модуль для поддержки кросфункциональных библиотек для Wasm32 и не Wasm32 архитектуры
+//!
+//! Предоставляет функциональность для взаимодействия с бэкэндом по HTTP (Wasm32 и не Wasm32 архитектуры)
+//!
+#[cfg(target_arch = "wasm32")]
+use gloo_net::http::{Method, Request, RequestBuilder, Response};
+#[cfg(not(target_arch = "wasm32"))]
+use reqwest::{Client, Method, RequestBuilder, Response};
+use serde::Serialize;
+//#[cfg(target_arch = "wasm32")]
+use crate::error::BlogClientError;
+use core::time::Duration;
+use std::fmt;
+
+pub(crate) trait HttpRequest {
+    fn new(timeout: Duration) -> Self;
+    fn request(&self, method: HttpRequestMethod, url: &str) -> HttpClientRequestBuilder;
+}
+
+pub(crate) trait HttpBuilder {
+    fn json<T: Serialize>(self, data: &T) -> HttpClientRequestBuilder;
+    fn bearer_auth<T: fmt::Display>(self, token: T) -> HttpClientRequestBuilder;
+    async fn send(self) -> Result<Response, BlogClientError>;
+}
+#[derive(Clone)]
+pub(crate) enum HttpRequestMethod {
+    GET,
+    POST,
+    PUT,
+    DELETE,
+}
+
+pub(crate) struct HttpClientRequest {
+    #[cfg(target_arch = "wasm32")]
+    client: RequestBuilder,
+    #[cfg(not(target_arch = "wasm32"))]
+    client: Client,
+}
+
+pub(crate) struct HttpClientRequestBuilder {
+    #[cfg(target_arch = "wasm32")]
+    request: Request,
+    #[cfg(target_arch = "wasm32")]
+    method: Option<HttpRequestMethod>,
+    #[cfg(target_arch = "wasm32")]
+    url: String,
+    #[cfg(not(target_arch = "wasm32"))]
+    request: RequestBuilder,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl HttpBuilder for HttpClientRequestBuilder {
+    fn json<T: Serialize>(self, data: &T) -> HttpClientRequestBuilder {
+        let request = self.request.json(data);
+        HttpClientRequestBuilder { request }
+    }
+
+    fn bearer_auth<T>(self, token: T) -> HttpClientRequestBuilder
+    where
+        T: fmt::Display,
+    {
+        Self {
+            request: self.request.bearer_auth(token),
+        }
+    }
+
+    async fn send(self) -> Result<Response, BlogClientError> {
+        Ok(self.request.send().await?)
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl HttpRequest for HttpClientRequest {
+    fn new(timeout: Duration) -> Self {
+        Self {
+            client: Client::builder()
+                .user_agent(format!("blog-client/{}", env!("CARGO_PKG_VERSION")))
+                .no_proxy()
+                .connect_timeout(timeout)
+                .build()
+                .expect("Failed to create client"),
+        }
+    }
+    fn request(&self, method: HttpRequestMethod, url: &str) -> HttpClientRequestBuilder {
+        let method_req = match method {
+            HttpRequestMethod::GET => Method::GET,
+            HttpRequestMethod::POST => Method::POST,
+            HttpRequestMethod::PUT => Method::PUT,
+            HttpRequestMethod::DELETE => Method::DELETE,
+        };
+        let request = self.client.clone().request(method_req, url);
+        HttpClientRequestBuilder { request }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl HttpRequest for HttpClientRequest {
+    fn new(timeout: Duration) -> Self {
+        Self {
+            client: RequestBuilder::new("/"),
+        }
+    }
+    fn request(&self, method: HttpRequestMethod, url: &str) -> HttpClientRequestBuilder {
+        let request_builder = match method {
+            HttpRequestMethod::GET => Request::get(url),
+            HttpRequestMethod::POST => Request::post(url),
+            HttpRequestMethod::PUT => Request::put(url),
+            HttpRequestMethod::DELETE => Request::delete(url),
+        };
+        let request = Request::try_from(request_builder).expect("Failed to create request builder");
+        HttpClientRequestBuilder {
+            request,
+            method: Some(method),
+            url: url.to_string(),
+        }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl HttpBuilder for HttpClientRequestBuilder {
+    fn json<T: Serialize>(self, data: &T) -> HttpClientRequestBuilder {
+        if let Some(method) = self.method {
+            let mut request_builder =
+                RequestBuilder::new(self.url.as_str()).method(Method::from(method.clone()));
+            let header = self.request.headers();
+            request_builder = request_builder.headers(header);
+            request_builder = request_builder.header("Content-Type", "application/json");
+            let json = serde_json::to_string(data).expect("Failed to serialize data");
+            return HttpClientRequestBuilder {
+                request: request_builder
+                    .body(json)
+                    .expect("Failed to create request builder"),
+                method: Some(method),
+                url: self.url,
+            };
+        }
+        self
+    }
+
+    fn bearer_auth<T>(self, token: T) -> HttpClientRequestBuilder
+    where
+        T: fmt::Display,
+    {
+        if let Some(method) = self.method {
+            let request_builder = RequestBuilder::new(self.url.as_str())
+                .method(Method::from(method.clone()))
+                .header("Authorization", &format!("Bearer {token}"));
+            return HttpClientRequestBuilder {
+                request: Request::try_from(request_builder)
+                    .expect("Failed to create request builder"),
+                method: Some(method),
+                url: self.url,
+            };
+        }
+        self
+    }
+
+    async fn send(self) -> Result<Response, BlogClientError> {
+        Ok(self.request.send().await?)
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl From<HttpRequestMethod> for Method {
+    fn from(value: HttpRequestMethod) -> Self {
+        match value {
+            HttpRequestMethod::GET => Method::GET,
+            HttpRequestMethod::POST => Method::POST,
+            HttpRequestMethod::PUT => Method::PUT,
+            HttpRequestMethod::DELETE => Method::DELETE,
+        }
+    }
+}
+
+impl HttpClientRequest {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn status_ok(&self, status: reqwest::StatusCode) -> bool {
+        status.is_success()
+    }
+    #[cfg(target_arch = "wasm32")]
+    pub(crate) fn status_ok(&self, status: u16) -> bool {
+        (200..300).contains(&status)
+    }
+}

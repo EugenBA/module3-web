@@ -1,22 +1,41 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
-struct User {
-    id: i32,
-    name: String,
-    email: String,
-    password_hash: String,
-    created_at: i64
-}
-#[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct RegisterUser {
-    username: String,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct User {
+    pub(crate) id: i64,
+    pub(crate) username: String,
     pub(crate) email: String,
-    pub(crate) password: String
+    pub(crate) password_hash: String,
+    pub(crate) created_at: DateTime<Utc>,
 }
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
+pub(crate) struct RegisterUser {
+    pub(crate) username: String,
+    pub(crate) email: String,
+    pub(crate) password: String,
+}
+#[derive(Debug, Deserialize, Clone)]
 pub(crate) struct LoginUser {
     pub(crate) username: String,
     pub(crate) password: String,
 }
 
+#[derive(Debug, Serialize, Clone)]
+pub(crate) struct TokenResponse {
+    pub(crate) token: String,
+    pub(crate) user: String,
+    pub(crate) id: i64,
+}
+
+impl User {
+    pub(crate) fn new(username: String, email: String, hash: String) -> Self {
+        Self {
+            id: 0,
+            username,
+            email,
+            password_hash: hash,
+            created_at: Utc::now(),
+        }
+    }
+}

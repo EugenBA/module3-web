@@ -1,17 +1,16 @@
-mod http_client;
-mod grpc_client;
+//! Библиотека для реализации API  Blog клиента
+//!
+//! Предоставляет функциональность для взаимодействия с бэкэндом
 
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+#![warn(missing_docs)]
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub mod clients;
+pub mod error;
+pub mod models;
+mod transports;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+#[allow(missing_docs)]
+#[cfg(not(target_arch = "wasm32"))]
+pub mod blog {
+    tonic::include_proto!("blog");
 }

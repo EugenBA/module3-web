@@ -1,3 +1,4 @@
-mod middleware;
-mod http_handlers;
-mod grpc_service;
+mod auth;
+pub(crate) mod grpc_service;
+pub(crate) mod http_handlers;
+pub(crate) mod middleware;

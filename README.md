@@ -1,2 +1,161 @@
 # module3-web
 Yandex practicum rust module 3
+
+# 1. blog-server
+Сервер на базе actix-web
+реализует следуюшие API:
+- GET /api/health - статус сервера
+- GET /api/posts?limit=0&offset=10 - список постов
+- GET /api/posts/id - получение поста по id
+- POST /api/posts - созадание поста
+- DELETE /api/posts/id - удаление постаё
+- PUT /api/posts/id - обновления поста
+- POST /api/auth/login - авторизация
+- POST /api/auth/register - регистрация
+Среврер реализует API по транспорту HTTP и gRPC
+
+### Ручки:
+- обновления поста
+- создания поста
+- удаления поста
+Защищены JWT токеном
+
+### Конфигурация:
+Конфигурация сервера раализована в .env файле:
+DATABASE_URL= строка подключения к базе данных postgresql
+HOST= адрес хоста сервера
+PORT=порт
+JWT_SECRET= JWT секрет
+CORS_ORIGINS=настройки CORS, адреса разделенные запятой
+GRPC_PORT= порт gRPC
+
+### Запуск и сборка:
+cargo run --package blog-server --bin blog-server
+
+# 2. blog-client
+библиотека фронтенда для доступа к API сервра blog-server. 
+Реализует методы регистрации, входа, создани, обновления, удаления постов. 
+Поддерживает транспорт HTTP и gRPC. 
+Подерживает сборку под архитектуру wasm32 (без поддержки транспотра gRPC)
+
+### Сборка:
+cargo build --package blog-client
+
+# 3. blog-cli
+Консольное приложения для доступа к API серврера.
+Поддерживает транспорт HTTP и gRPC.
+
+### Поддерживаемые команды:
+- регистрация
+blog-cli register --username test --email test@test.com --password test --grpc
+```
+  Using gRPC transport
+  Server address: http://localhost:50051
+  User: test, login, Token saved to .blog_token
+```
+
+- вход
+blog-cli login --username test --password test --grpc
+```
+  Using gRPC transport
+  Server address: http://localhost:50051
+  User: test, login, Token saved to .blog_token
+```
+
+- список постов
+blog-cli list --grpc
+```
+  Using gRPC transport
+  Server address: http://localhost:50051
+  Posts:
+
+------------------------------
+Post ID: 5
+Title: Post #2 test1
+Content: Test post #2 - created!
+------------------------------
+Post ID: 4
+Title: Post #1 test1
+Content: Test post #1 - created!
+------------------------------
+Post ID: 3
+Title: Post #2 test
+Content: Test post #3 -created!
+------------------------------
+Post ID: 2
+Title: Post #2 test
+Content: Test post #2 - created!
+------------------------------
+```
+- получение поста
+blog-cli get --id 2 --grpc
+```
+  Using gRPC transport
+  Server address: http://localhost:50051
+  Post ID: 2
+  Title: Post #2 test
+  Content: Test post #2 - created!
+```
+- обновление поста
+blog-cli update --id 2 --title 'Post 2 update' --content 'Content post 2 update' --grpc
+```
+Using gRPC transport
+Server address: http://localhost:50051
+Post ID: 2
+Title: Post 2 update
+Content: Content post 2 update
+```
+- удаление поста
+blog-cli update --id 2 --grpc
+```
+Using gRPC transport
+Server address: http://localhost:50051
+Post 2 deleted
+Posts:
+------------------------------
+Post ID: 5
+Title: Post #2 test1
+Content: Test post #2 - created!
+------------------------------
+Post ID: 4
+Title: Post #1 test1
+Content: Test post #1 - created!
+------------------------------
+Post ID: 3
+Title: Post #2 test
+Content: Test post #3 -created!
+------------------------------
+```
+
+### Сборка:
+cargo build --package blog-cli
+
+# 4. blog-wasm
+Библиотека wasm32 реализует фронтенд для доступа к API серверу блогов
+Поддерживает протокол HTTP
+### Реализует API для:
+#### Регистрация:
+![img.png](img/img_register.png)
+
+#### Вход
+![img.png](img/img_login.png)
+
+#### Создание поста
+![img.png](img/img_add_post.png)
+
+#### Обновление поста
+![img.png](img/img_edit_post.png)
+
+#### Получение поста
+![img.png](img/img_get_post.png)
+
+- удаления поста
+![img.png](img/img_delete_post.png)
+
+- получение списка постов.
+![img.png](img/img_list_post.png)
+### Сборка:
+wasm-pack build --target web
+
+### Запуск в простом сервере (rust)
+simple-http-server --index --nocache --cors --port 8080

@@ -1,74 +1,161 @@
-use actix_web::{get, post, web, HttpResponse, Responder};
-use sqlx::PgPool;
-use argon2::{
-    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
-    Argon2,
-};
-use crate::infrastructure::{jwt, config::Config};
-use crate::domain::user::{RegisterUser, LoginUser};
-use crate::data::user_repository;
+use crate::application::auth_service::AuthService;
+use crate::application::blog_service::BlogService;
+use crate::data::blog_repository::InDbPostRepository;
+use crate::data::user_repository::InDbUserRepository;
+use crate::domain::error::BlogError;
+use crate::domain::post::{CreatePost, GetPaginationPost, ListPosts, UpdatePost};
+use crate::domain::user::{LoginUser, RegisterUser, TokenResponse};
+use crate::presentation::auth::AuthenticatedUser;
+use actix_web::{HttpMessage, HttpRequest, HttpResponse, Responder, web};
+use chrono::{DateTime, Utc};
+use serde::Serialize;
+use tracing::info;
 
-#[get("/health")]
-async fn health() -> impl Responder {
-    HttpResponse::Ok().json(serde_json::json!({"status":"ok"}))
+
+#[derive(Debug, Serialize)]
+pub(crate) struct HealthResponse {
+    /// поле статус
+    pub status: &'static str,
+    /// поле метки времение
+    pub timestamp: DateTime<Utc>,
 }
 
-#[post("/register")]
-async fn register(
-    pool: web::Data<PgPool>,
-    body: web::Json<RegisterUser>,
-) -> actix_web::Result<impl Responder> {
-    let email = body.email.trim().to_lowercase();
-    if email.is_empty() || body.password.len() < 6 {
-        return Ok(HttpResponse::BadRequest().json(serde_json::json!({
-            "error": "invalid input"
-        })));
-    }
-
-    let pw_hash = security::hash_password(&body.password)
-        .map_err(|_| actix_web::error::ErrorInternalServerError("hash error"))?;
-
-    let user_id = uuid::Uuid::new_v4();
-
-    let res = user_repository::create_user(&pool, user_id, &email, &pw_hash).await;
-    match res {
-        Ok(_) => Ok(HttpResponse::Created().finish()),
-        Err(sqlx::Error::Database(db_err)) if db_err.is_unique_violation() => {
-            Ok(HttpResponse::Conflict().json(serde_json::json!({"error":"email taken"})))
-        }
-        Err(_) => Err(actix_web::error::ErrorInternalServerError("db error")),
-    }
+pub(crate) async fn health() -> impl Responder {
+    HttpResponse::Ok().json(HealthResponse {
+        status: "ok",
+        timestamp: Utc::now(),
+    })
 }
 
-#[post("/login")]
-async fn login(
-    pool: web::Data<PgPool>,
-    cfg: web::Data<Config>,
-    body: web::Json<LoginUser>,
-) -> actix_web::Result<impl Responder> {
-    let username = body.username.trim().to_lowercase();
+pub(crate) async fn create_post(
+    req: HttpRequest,
+    user: AuthenticatedUser,
+    blog: web::Data<BlogService<InDbPostRepository>>,
+    payload: web::Json<CreatePost>,
+) -> Result<HttpResponse, BlogError> {
+    let post = blog
+        .create_post(payload.title.clone(), payload.content.clone(), user.id)
+        .await?;
 
-    let user = match user_repository::find_user(&pool, &username).await {
-        Ok(Some(u)) => u,
-        Ok(None) => return Ok(HttpResponse::Unauthorized().finish()),
-        Err(_) => return Err(actix_web::error::ErrorInternalServerError("db error")),
-    };
+    info!(
+        request_id = %request_id(&req),
+        user_id = %user.id,
+        "post created"
+    );
 
-    let ok = security::verify_password(&body.password, &user.password_hash)
-        .map_err(|_| actix_web::error::ErrorInternalServerError("verify error"))?;
-
-    if !ok {
-        return Ok(HttpResponse::Unauthorized().finish());
-    }
-
-    let token = security::generate_jwt(&cfg.jwt_secret, user.id)
-        .map_err(|_| actix_web::error::ErrorInternalServerError("jwt error"))?;
-
-    Ok(HttpResponse::Ok().json(TokenResponse { access_token: token }))
+    Ok(HttpResponse::Created().json(post))
 }
 
-pub fn configure(cfg: &mut web::ServiceConfig) {
-    cfg.service(health)
-        .service(register)
-        .service(login);
+pub(crate) async fn get_post(
+    req: HttpRequest,
+    blog: web::Data<BlogService<InDbPostRepository>>,
+    path: web::Path<i64>,
+) -> Result<HttpResponse, BlogError> {
+    let post = blog.get_post(path.clone()).await?;
+
+    info!(
+        request_id = %request_id(&req),
+        post_id = %path.into_inner(),
+        "get post"
+    );
+
+    Ok(HttpResponse::Accepted().json(post))
+}
+
+pub(crate) async fn get_posts(
+    req: HttpRequest,
+    blog: web::Data<BlogService<InDbPostRepository>>,
+    payload: web::Query<GetPaginationPost>,
+) -> Result<HttpResponse, BlogError> {
+    let posts = blog.get_posts(payload.limit, payload.offset).await?;
+    info!(
+        request_id = %request_id(&req),
+        "get posts"
+    );
+    Ok(HttpResponse::Accepted().json(ListPosts {
+        total: posts.len(),
+        posts: Some(posts),
+        limit: payload.limit,
+        offset: payload.offset,
+    }))
+}
+
+pub(crate) async fn update_post(
+    req: HttpRequest,
+    user: AuthenticatedUser,
+    blog: web::Data<BlogService<InDbPostRepository>>,
+    payload: web::Json<UpdatePost>,
+    path: web::Path<i64>,
+) -> Result<HttpResponse, BlogError> {
+    let post = blog
+        .update_post(path.clone(), user.id, payload.clone())
+        .await?;
+
+    info!(
+        request_id = %request_id(&req),
+        user_id = %user.id,
+        post_id = %path.into_inner(),
+        "post update"
+    );
+    Ok(HttpResponse::Ok().json(post))
+}
+
+pub(crate) async fn delete_post(
+    req: HttpRequest,
+    user: AuthenticatedUser,
+    blog: web::Data<BlogService<InDbPostRepository>>,
+    path: web::Path<i64>,
+) -> Result<HttpResponse, BlogError> {
+    blog.delete_post(path.clone(), user.id).await?;
+    info!(
+        request_id = %request_id(&req),
+        user_id = %user.id,
+        post_id = %path.into_inner(),
+        "post delete"
+    );
+    Ok(HttpResponse::Ok().into())
+}
+
+pub(crate) async fn register(
+    req: HttpRequest,
+    auth: web::Data<AuthService<InDbUserRepository>>,
+    payload: web::Json<RegisterUser>,
+) -> Result<HttpResponse, BlogError> {
+    let (id, token) = auth.register(payload.clone()).await?;
+    info!(
+        request_id = %request_id(&req),
+        username = %payload.username,
+        email = %payload.username,
+        "register user"
+    );
+    Ok(HttpResponse::Ok().json(TokenResponse {
+        token,
+        user: payload.username.clone(),
+        id,
+    }))
+}
+
+pub(crate) async fn login(
+    req: HttpRequest,
+    auth: web::Data<AuthService<InDbUserRepository>>,
+    payload: web::Json<LoginUser>,
+) -> Result<HttpResponse, BlogError> {
+    let (id, token) = auth.login(payload.clone()).await?;
+    info!(
+        request_id = %request_id(&req),
+        username= payload.username,
+        "login user"
+    );
+    Ok(HttpResponse::Ok().json(TokenResponse {
+        token,
+        user: payload.username.clone(),
+        id,
+    }))
+}
+
+fn request_id(req: &HttpRequest) -> String {
+    req.extensions()
+        .get::<crate::presentation::middleware::RequestId>()
+        .map(|rid| rid.0.clone())
+        .unwrap_or_else(|| "unknown".into())
 }

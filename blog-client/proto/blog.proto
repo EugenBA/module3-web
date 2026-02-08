@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package blog;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+service ProtoBlogService {
+  // Аутентификация и пользователи
+  rpc RegisterUser(RegisterUserRequest) returns (TokenResponse);
+  rpc LoginUser(LoginUserRequest) returns (TokenResponse);
+
+  // Посты (требуют авторизации)
+  rpc CreatePost(CreatePostRequest) returns (CreatePostResponse);
+  rpc UpdatePost(UpdatePostRequest) returns (UpdatePostResponse);
+  rpc DeletePost(DeletePostRequest) returns (DeletePostResponse);
+
+  // Посты (публичные)
+  rpc GetPost(GetPostRequest) returns (GetPostResponse);
+  rpc GetPosts(GetPostsRequest) returns (GetPostsResponse);
+}
+
+// Сообщения для пользователей
+message RegisterUserRequest {
+  string username = 1;
+  string email = 2;
+  string password = 3;
+}
+
+message LoginUserRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message TokenResponse {
+  string token = 1;
+  string username = 2;
+}
+
+// Сообщения для постов
+message CreatePostRequest {
+  string title = 1;
+  string content = 2;
+}
+
+message CreatePostResponse {
+  ProtoPost post = 1;
+}
+
+message UpdatePostRequest {
+  int64 id = 1;
+  string title = 2;
+  string content = 3;
+}
+
+message UpdatePostResponse {
+  ProtoPost post = 1;
+}
+
+message DeletePostRequest {
+  int64 id = 1;
+}
+
+message DeletePostResponse {
+  bool success = 1;
+}
+
+message GetPostRequest {
+  int64 id = 1;
+}
+
+message GetPostResponse {
+  ProtoPost post = 1;
+}
+
+message GetPostsRequest {
+  optional int64 offset = 1;  // Смещение для пагинации
+  optional int64 limit = 2;   // Лимит для пагинации (по умолчанию 20)
+}
+
+message GetPostsResponse {
+  repeated ProtoPost posts = 1;
+}
+
+// Модели
+message ProtoUser {
+  int64 id = 1;
+  string username = 2;
+  string email = 3;
+  google.protobuf.Timestamp created_at = 4;
+}
+
+message ProtoPost {
+  int64 id = 1;
+  string title = 2;
+  string content = 3;
+  int64 author_id = 4;
+  google.protobuf.Timestamp created_at = 5;
+  optional google.protobuf.Timestamp updated_at = 6;
+}
