@@ -123,7 +123,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     };
     match response {
         Ok(response) => {
-            println!("{}", response.format_output())
+            match &cli.command {
+                Commands::Login { username: _, password: _ } |
+                Commands::Register { username: _, email: _, password: _ } => {}
+                _ => println!("{}", response.format_output())
+            }
         }
         Err(e) => {
             println!("Error: {}", e)

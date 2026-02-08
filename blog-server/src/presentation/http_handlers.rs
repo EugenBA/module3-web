@@ -11,8 +11,6 @@ use chrono::{DateTime, Utc};
 use serde::Serialize;
 use tracing::info;
 
-#[derive(Clone)]
-pub(crate) struct RequestId(pub String);
 
 #[derive(Debug, Serialize)]
 pub(crate) struct HealthResponse {
@@ -157,7 +155,7 @@ pub(crate) async fn login(
 
 fn request_id(req: &HttpRequest) -> String {
     req.extensions()
-        .get::<RequestId>()
+        .get::<crate::presentation::middleware::RequestId>()
         .map(|rid| rid.0.clone())
         .unwrap_or_else(|| "unknown".into())
 }

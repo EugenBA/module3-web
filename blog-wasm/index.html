@@ -43,6 +43,7 @@
             background-color: #b6b6b6;
             padding: 5px;
             font-size: 1rem;
+            font-weight: bold;
         }
         .auth-forms{
             display: flex;
@@ -227,7 +228,7 @@
             html += `<div class="padding-separator width-full"></div>
                     <div class="width-full">
                         <div class="separator"></div>
-                          <div class="caption_post"><b>Create New Post</b></div>
+                          <div id="caption_edit_post" class="caption_post">Create New Post</div>
                         <div class="separator"></div>
                         <div class="padding-separator"></div>
                         <div class="width-full">
@@ -319,6 +320,7 @@
         }
 
         try {
+            await client.login(username, password);
             await update_ui();
             await load_posts();
             clear_error();
@@ -378,12 +380,14 @@
         const editor_title = document.getElementById("post-title");
         const editor_content = document.getElementById("post-content");
         const editor_id = document.getElementById("post-id");
+        const caption = document.getElementById("caption_edit_post");
         editor_title.value = title.textContent;
         editor_content.value = content.textContent;
         editor_id.value = id;
 
         const bt_create = document.getElementById("ct_create");
         const bt_update = document.getElementById("ct_update");
+        caption.textContent = "Edit Post";
         hide(bt_create);
         show(bt_update);
 
@@ -412,9 +416,11 @@
         const id = document.getElementById("post-id");
         const bt_create = document.getElementById("ct_create");
         const bt_update = document.getElementById("ct_update");
+        const caption = document.getElementById("caption_edit_post");
         title.value = "";
         content.value = "";
         id.value = "";
+        caption.textContent = "Create New Post";
         show(bt_create);
         hide(bt_update);
     }

@@ -40,7 +40,7 @@ impl WasmBlogClient {
     /// ```rust
     /// Регистрация пользователя
     ///
-    /// # Парметры
+    /// # Параметры
     ///
     /// * `username` - имя пользователя
     /// * `email` - адрес электронной почты
@@ -48,11 +48,11 @@ impl WasmBlogClient {
     ///
     /// # Returns
     ///
-    /// * `Ok(JsValue)` - возращает токен имя польщователя и его id
+    /// * `Ok(JsValue)` - возращает токен имя пользователя и его id
     /// * `Err(JsValue)` - возврат ошибки
     ///
     /// # Errors
-    /// Возрашщает в виде JSValue
+    /// Возращает в виде JSValue
     ///
     /// ```
     #[wasm_bindgen]
@@ -73,16 +73,16 @@ impl WasmBlogClient {
     /// ```rust
     /// Вход пользователя
     ///
-    /// # Парметры
+    /// # Параметры
     /// * `username` - имя пользователя
     /// * `password` - пароль
     ///
     /// # Возврат
-    /// * Ok(JsValue) - возращает токен имя польщователя и его id
+    /// * Ok(JsValue) - возращает токен имя пользователя и его id
     /// * Err(JSvalue) - возврат ошибки
     ///
     /// # Ошибки
-    /// * Возрвщвет JSvalue
+    /// * Возвращает JSvalue
     ///
     #[wasm_bindgen]
     pub async fn login(&self, username: String, password: String) -> Result<JsValue, JsValue> {
@@ -105,11 +105,11 @@ impl WasmBlogClient {
     ///
     /// # Возврат
     ///
-    /// * `Ok(JsValue)` - возращает пост
-    /// * `Err(JsValue)` - ошибкуа JSvalue
+    /// * `Ok(JsValue)` - возвращает пост
+    /// * `Err(JsValue)` - ошибку JSvalue
     ///
     /// # Ошибки
-    ///  Djphfoftn jib,rb JSvalue
+    ///  Возвращает JSvalue
     ///
     /// ```
     #[wasm_bindgen]
@@ -161,11 +161,11 @@ impl WasmBlogClient {
     /// # Параметры
     /// * `id` - идентификатор поста
     ///
-    /// # Returns
+    /// # Возврат
     /// * Ok(JsValue) - пост успешно удален
-    /// * Err(JsValue) - ошибка удаления поста\
+    /// * Err(JsValue) - ошибка удаления поста
     /// # Errors
-    ///  Возращает JSvalue
+    ///  Возвращает JSvalue
     /// ```
     #[wasm_bindgen]
     pub async fn delete_post(&self, id: i64) -> Result<JsValue, JsValue> {
@@ -182,13 +182,13 @@ impl WasmBlogClient {
     /// Получить пост
     ///
     ///
-    /// # Паарметры
+    /// # Параметры
     ///
     /// * `id` - идентификатор поста
     ///
     /// # Возврат
     ///
-    /// * `Ok(JSvalue)` - в случае успеха возращает данные обновленного поста
+    /// * `Ok(JSvalue)` - в случае успеха возвращает данные обновленного поста
     /// *  Err(JsValue)` -  ошибка обновления поста
     ///
     /// # Ошибки
@@ -208,14 +208,14 @@ impl WasmBlogClient {
     /// Возвращает список постов
     ///
     /// # Параметры
-    /// - `limit` (`i64`): ограничение по каоличеству постов
+    /// - `limit` (`i64`): ограничение по каличеству постов
     /// - `offset` (`i64`): смещение от начала выборки постов
     ///
     /// # Возврат
     /// - `Ok(JsValue)`: список постов
     /// - `Err(JsValue)`: ошибки получения данных постов
     ///
-    /// # Errors
+    /// # Ошибки
     /// Возвращает JSvalue
     ///
     /// ```
@@ -252,44 +252,28 @@ impl WasmBlogClient {
 
     /// ```rust
     ///
-    /// Проверка, что пользователь зарегестрировал
+    /// Проверка, что пользователь зарегестрирован
     ///
     ///  # Returns
-    /// * `bool` - возвращает true если пользователь зарегестрировался
+    /// * `bool` - возвращает true, если пользователь зарегестрировался
     ///
     /// ```
     #[wasm_bindgen]
     pub fn is_authenticated(&self) -> bool {
         self.http_client.get_user().is_some()
     }
+
     /// ```rust
-    /// Retrieves the current user's information.
+    /// Получение информации о пользователе
     ///
-    /// This function attempts to get the current user's data from the HTTP client.
-    /// If the HTTP client fails to fetch the user, a default `StorageUser` instance
-    /// is used with an `id` of `-1` and an empty `username`. The user's data is
-    /// then serialized into a `JsValue` using `serde_wasm_bindgen`.
     ///
-    /// # Returns
-    /// - `Ok(JsValue)` containing the serialized user data if successful.
-    /// - `Err(JsValue)` if serialization into `JsValue` fails.
+    /// # Возврат
+    /// - `Ok(JsValue)` данные пользователя (имя и ид)
+    /// - `Err(JsValue)` в случае ошибки (ошибка с GlobalStorage)
     ///
-    /// # Errors
-    /// This function can return an error if the serialization of the `StorageUser`
-    /// struct to `JsValue` fails.
+    /// # Ошибки
+    /// Возвращает JSvalue
     ///
-    /// # Example
-    /// ```
-    /// let current_user = get_current_user();
-    /// match current_user {
-    ///     Ok(user) => {
-    ///         // Use the user data
-    ///     }
-    ///     Err(err) => {
-    ///         // Handle the error
-    ///     }
-    /// }
-    /// ```
     /// ```
     #[wasm_bindgen]
     pub fn get_current_user(&self) -> Result<JsValue, JsValue> {

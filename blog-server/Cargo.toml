@@ -33,6 +33,7 @@ actix-service = "2.0"
 prost-types.workspace = true
 prost.workspace = true
 tonic-prost.workspace = true
+uuid = { version = "1.18.1", features = ["v4"] }
 
 [build-dependencies]
 tonic-prost-build = "0.14"

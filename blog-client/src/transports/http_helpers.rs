@@ -35,7 +35,6 @@ pub(crate) struct HttpClientRequest {
     client: RequestBuilder,
     #[cfg(not(target_arch = "wasm32"))]
     client: Client,
-    timeout: Duration,
 }
 
 pub(crate) struct HttpClientRequestBuilder {
@@ -80,7 +79,6 @@ impl HttpRequest for HttpClientRequest {
                 .connect_timeout(timeout)
                 .build()
                 .expect("Failed to create client"),
-            timeout,
         }
     }
     fn request(&self, method: HttpRequestMethod, url: &str) -> HttpClientRequestBuilder {
@@ -100,7 +98,6 @@ impl HttpRequest for HttpClientRequest {
     fn new(timeout: Duration) -> Self {
         Self {
             client: RequestBuilder::new("/"),
-            timeout,
         }
     }
     fn request(&self, method: HttpRequestMethod, url: &str) -> HttpClientRequestBuilder {

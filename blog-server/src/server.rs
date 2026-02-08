@@ -9,7 +9,7 @@ use crate::infrastructure::jwt::JwtService;
 use crate::infrastructure::logging::init_logging;
 use crate::presentation::grpc_service::BlogGrpcService;
 use crate::presentation::http_handlers;
-use crate::presentation::middleware::JwtAuthMiddleware;
+use crate::presentation::middleware::{JwtAuthMiddleware, RequestIdMiddleware};
 use actix_cors::Cors;
 use actix_web::middleware::{DefaultHeaders, Logger};
 use actix_web::{App, HttpServer, web};
@@ -77,6 +77,7 @@ async fn start_http_server(
         let cors = build_cors(&config);
         App::new()
             .wrap(Logger::default())
+            .wrap(RequestIdMiddleware)
             .wrap(
                 DefaultHeaders::new()
                     .add(("X-Content-Type-Options", "nosniff"))

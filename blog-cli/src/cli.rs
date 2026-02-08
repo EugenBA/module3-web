@@ -68,6 +68,6 @@ pub(crate) struct Cli {
     pub(crate) command: Commands,
 
     /// Использовать gRPC транспорт вместо HTTP
-    #[arg(long)]
+    #[arg(long, global = true)]
     pub(crate) grpc: bool,
 }
